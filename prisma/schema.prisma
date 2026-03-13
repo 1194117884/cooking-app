@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  name          String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  familyMembers FamilyMember[]
+  mealPlans     MealPlan[]
+  recipes       Recipe[]
+  shoppingLists ShoppingList[]
+
+  @@map("users")
+}
+
+model FamilyMember {
+  id          String       @id @default(uuid())
+  userId      String
+  name        String
+  role        MemberRole   @default(ADULT)
+  avatarColor String       @default("#3b82f6")
+  dietaryGoal String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealRatings MealRating[]
+  preferences Preference[]
+
+  @@unique([userId, name])
+  @@map("family_members")
+}
+
+model Preference {
+  id        String       @id @default(uuid())
+  memberId  String
+  type      PrefType
+  category  PrefCategory
+  value     String
+  intensity Int          @default(3)
+  createdAt DateTime     @default(now())
+  member    FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, category, value])
+  @@map("preferences")
+}
+
+model Recipe {
+  id                 String             @id @default(uuid())
+  userId             String?
+  name               String
+  cuisineType        String
+  difficulty         Difficulty         @default(MEDIUM)
+  cookTimeMin        Int
+  servings           Int                @default(4)
+  caloriesPerServing Int?
+  protein            Decimal?           @db.Decimal(5, 1)
+  carbs              Decimal?           @db.Decimal(5, 1)
+  fat                Decimal?           @db.Decimal(5, 1)
+  tags               String[]
+  coverImageUrl      String?
+  sourceUrl          String?
+  popularity         Int                @default(0)
+  isFavorite         Boolean            @default(false)
+  steps              String
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  mealPlans          MealPlan[]
+  ratings            MealRating[]
+  ingredients        RecipeIngredient[]
+  user               User?              @relation(fields: [userId], references: [id])
+
+  @@index([cuisineType])
+  @@index([tags])
+  @@index([popularity])
+  @@map("recipes")
+}
+
+model Ingredient {
+  id                String             @id @default(uuid())
+  name              String
+  category          IngredientCategory
+  unit              String             @default("g")
+  caloriesPer100g   Int?
+  proteinPer100g    Decimal?           @db.Decimal(5, 1)
+  carbsPer100g      Decimal?           @db.Decimal(5, 1)
+  fatPer100g        Decimal?           @db.Decimal(5, 1)
+  createdAt         DateTime           @default(now())
+  recipeIngredients RecipeIngredient[]
+  shoppingListItems ShoppingListItem[]
+
+  @@unique([name, category])
+  @@index([category])
+  @@map("ingredients")
+}
+
+model RecipeIngredient {
+  id           String     @id @default(uuid())
+  recipeId     String
+  ingredientId String
+  quantity     Decimal    @db.Decimal(8, 2)
+  unit         String?
+  isOptional   Boolean    @default(false)
+  note         String?
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, ingredientId])
+  @@map("recipe_ingredients")
+}
+
+model MealPlan {
+  id             String       @id @default(uuid())
+  userId         String
+  weekStartDate  DateTime
+  mealType       MealType
+  dayOfWeek      Int
+  recipeId       String
+  servingsActual Int?
+  notes          String?
+  isCompleted    Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  recipe         Recipe       @relation(fields: [recipeId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ratings        MealRating[]
+
+  @@unique([userId, weekStartDate, mealType, dayOfWeek, recipeId])
+  @@index([userId, weekStartDate])
+  @@map("meal_plans")
+}
+
+model MealRating {
+  id         String       @id @default(uuid())
+  mealPlanId String
+  memberId   String
+  recipeId   String
+  rating     Int
+  comment    String?
+  createdAt  DateTime     @default(now())
+  mealPlan   MealPlan     @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  member     FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  recipe     Recipe       @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([mealPlanId, memberId])
+  @@map("meal_ratings")
+}
+
+model ShoppingList {
+  id            String             @id @default(uuid())
+  userId        String
+  weekStartDate DateTime
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  items         ShoppingListItem[]
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStartDate])
+  @@index([userId])
+  @@map("shopping_lists")
+}
+
+model ShoppingListItem {
+  id             String       @id @default(uuid())
+  shoppingListId String
+  ingredientId   String
+  quantityNeeded Decimal      @db.Decimal(8, 2)
+  unit           String
+  quantityHave   Decimal      @default(0) @db.Decimal(8, 2)
+  quantityToBuy  Decimal      @db.Decimal(8, 2)
+  isPurchased    Boolean      @default(false)
+  aisle          String?
+  note           String?
+  ingredient     Ingredient   @relation(fields: [ingredientId], references: [id])
+  shoppingList   ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+
+  @@unique([shoppingListId, ingredientId])
+  @@map("shopping_list_items")
+}
+
+enum MemberRole {
+  ADULT
+  CHILD
+  ELDER
+}
+
+enum PrefType {
+  LIKE
+  DISLIKE
+  NEUTRAL
+}
+
+enum PrefCategory {
+  INGREDIENT
+  CUISINE
+  TASTE
+  COOKING_METHOD
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum IngredientCategory {
+  VEGETABLE
+  MEAT
+  SEAFOOD
+  GRAIN
+  SEASONING
+  FRUIT
+  DAIRY
+  OTHER
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}

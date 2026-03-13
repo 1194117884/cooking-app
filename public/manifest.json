@@ -1,0 +1,41 @@
+{
+  "name": "家庭美食规划系统",
+  "short_name": "家庭美食",
+  "description": "智能规划每周美食，根据家人口味定制菜谱",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#ff6b6b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["food", "lifestyle", "utilities"],
+  "shortcuts": [
+    {
+      "name": "本周菜单",
+      "short_name": "菜单",
+      "description": "查看本周饮食计划",
+      "url": "/planner",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "采购清单",
+      "short_name": "采购",
+      "description": "查看待购物品",
+      "url": "/shopping",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
