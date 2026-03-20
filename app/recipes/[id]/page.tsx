@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Skeleton from '@/components/Skeleton';
+import { getAuthToken } from '@/lib/auth-client';
 
 interface Ingredient {
   name: string;
@@ -37,29 +38,54 @@ async function fetchRecipe(id: string): Promise<Recipe> {
   return data.recipe;
 }
 
+throw new Error('用户未认证');
+}
+
 async function toggleFavorite(id: string, isFavorite: boolean) {
+  const token = await getAuthToken();
+
   const res = await fetch(`/api/recipes/${id}/favorite`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify({ isFavorite: !isFavorite }),
   });
-  if (!res.ok) throw new Error('操作失败');
+
+  if (res.status === 401) {
+    window.location.href = '/auth/login';
+    throw new Error('未授权访问');
+  }
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || '操作失败');
+  }
   return res.json();
 }
 
 async function addToShoppingList(recipeId: string) {
+  const token = await getAuthToken();
+
   const res = await fetch('/api/shopping-list/add-recipe', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify({ recipeId }),
   });
-  if (!res.ok) throw new Error('添加失败');
+
+  if (res.status === 401) {
+    window.location.href = '/auth/login';
+    throw new Error('未授权访问');
+  }
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || '添加失败');
+  }
   return res.json();
 }
 

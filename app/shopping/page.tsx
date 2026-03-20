@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { getAuthToken } from '@/lib/auth-client';
 
 interface ShoppingListItem {
   id: string;
@@ -26,46 +27,86 @@ export default function ShoppingPage() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'purchased'>('all');
 
   useEffect(() => {
-    fetch('/api/shopping-list')
-      .then((res) => res.json())
-      .then((data) => {
-        setItems(data.items || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch shopping list:', err);
-        setLoading(false);
-      });
+    fetchShoppingList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const togglePurchased = (id: string) => {
+  const fetchShoppingList = async () => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/shopping-list', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (res.status === 401) {
+        window.location.href = '/auth/login';
+        return;
+      }
+
+      const data = await res.json();
+      setItems(data.items || []);
+      setLoading(false);
+    } catch (error) {
+      console.error('Failed to fetch shopping list:', error);
+      setLoading(false);
+    }
+  };
+
+  const togglePurchased = async (id: string) => {
     const item = items.find((i) => i.id === id);
     if (item) {
-      fetch(`/api/shopping-list/items/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isPurchased: !item.isPurchased }),
-      })
-        .then(() => {
+      try {
+        const token = await getAuthToken();
+        const res = await fetch(`/api/shopping-list/items/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ isPurchased: !item.isPurchased }),
+        });
+
+        if (res.status === 401) {
+          window.location.href = '/auth/login';
+          return;
+        }
+
+        if (res.ok) {
           setItems(
             items.map((i) =>
               i.id === id ? { ...i, isPurchased: !i.isPurchased } : i
             )
           );
-        })
-        .catch(console.error);
+        }
+      } catch (error) {
+        console.error('Failed to update item:', error);
+      }
     }
   };
 
-  const generateFromMealPlan = () => {
-    fetch('/api/shopping-list/generate', {
-      method: 'POST',
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setItems(data.items || []);
-      })
-      .catch(console.error);
+  const generateFromMealPlan = async () => {
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/shopping-list/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (res.status === 401) {
+        window.location.href = '/auth/login';
+        return;
+      }
+
+      const data = await res.json();
+      setItems(data.items || []);
+    } catch (error) {
+      console.error('Failed to generate shopping list:', error);
+    }
   };
 
   // 按类别分组

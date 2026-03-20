@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+import { verifyToken, sanitizeInput } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -39,22 +37,15 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    // 验证 token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const userId = await verifyToken(request as Request & { headers: Headers; cookies: any });
+
+    if (!userId) {
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
-    let userId: string;
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-      userId = decoded.userId;
-    } catch {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 });
-    }
-
     const body = await request.json();
+
+    // 清理并验证输入
     const {
       name,
       cuisineType,
@@ -67,24 +58,53 @@ export async function POST(request: Request) {
       steps,
     } = body;
 
-    if (!name || !cuisineType || !difficulty || !cookTimeMin || !servings || !steps) {
+    if (
+      !name || typeof name !== 'string' ||
+      !cuisineType || typeof cuisineType !== 'string' ||
+      !difficulty || typeof difficulty !== 'string' ||
+      typeof cookTimeMin !== 'number' ||
+      typeof servings !== 'number' ||
+      !steps || typeof steps !== 'string'
+    ) {
       return NextResponse.json(
-        { error: '请填写所有必填项' },
+        { error: '请填写所有必填项且类型正确' },
+        { status: 400 }
+      );
+    }
+
+    // 清理输入数据
+    const sanitizedName = sanitizeInput(name);
+    const sanitizedCuisineType = sanitizeInput(cuisineType);
+    const sanitizedSteps = sanitizeInput(steps);
+    const sanitizedCoverImageUrl = coverImageUrl ? sanitizeInput(coverImageUrl as string) : null;
+    const sanitizedTags = Array.isArray(tags) ? tags.map(tag => sanitizeInput(String(tag))) : [];
+
+    // 验证数据范围
+    if (cookTimeMin <= 0 || servings <= 0) {
+      return NextResponse.json(
+        { error: '烹饪时间和服务份数必须大于0' },
+        { status: 400 }
+      );
+    }
+
+    if (caloriesPerServing && (typeof caloriesPerServing !== 'number' || caloriesPerServing <= 0)) {
+      return NextResponse.json(
+        { error: '卡路里必须为正数' },
         { status: 400 }
       );
     }
 
     const recipe = await prisma.recipe.create({
       data: {
-        name,
-        cuisineType,
+        name: sanitizedName,
+        cuisineType: sanitizedCuisineType,
         difficulty,
         cookTimeMin,
         servings,
-        caloriesPerServing,
-        tags,
-        coverImageUrl,
-        steps,
+        caloriesPerServing: caloriesPerServing || null,
+        tags: sanitizedTags,
+        coverImageUrl: sanitizedCoverImageUrl || null,
+        steps: sanitizedSteps,
         userId,
         popularity: 0,
         isFavorite: false,

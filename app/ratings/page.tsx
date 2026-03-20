@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Skeleton from '@/components/Skeleton';
+import { getAuthToken } from '@/lib/auth-client';
+import { getAuthToken } from '@/lib/auth-client';
 
 interface Member {
   id: string;
@@ -40,22 +42,38 @@ const MEAL_NAMES: Record<string, string> = {
 };
 
 async function fetchRatings(): Promise<Rating[]> {
+  const token = await getAuthToken();
+
   const res = await fetch('/api/meal-ratings', {
     headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'Authorization': `Bearer ${token}`,
     },
   });
+
+  if (res.status === 401) {
+    window.location.href = '/auth/login';
+    throw new Error('未授权访问');
+  }
+
   if (!res.ok) throw new Error('获取评分失败');
   const data = await res.json();
   return data.ratings;
 }
 
 async function fetchMembers(): Promise<Member[]> {
+  const token = await getAuthToken();
+
   const res = await fetch('/api/members', {
     headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'Authorization': `Bearer ${token}`,
     },
   });
+
+  if (res.status === 401) {
+    window.location.href = '/auth/login';
+    throw new Error('未授权访问');
+  }
+
   if (!res.ok) throw new Error('获取成员失败');
   const data = await res.json();
   return data.members;

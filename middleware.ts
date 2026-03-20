@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import jwt from 'jsonwebtoken';
 
 // 需要认证的路由（前缀匹配）
 const protectedRoutes = [
@@ -11,6 +12,8 @@ const protectedRoutes = [
   '/recommend',
   '/nutrition',
 ];
+
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -30,7 +33,14 @@ export function middleware(request: NextRequest) {
 
   // 如果已登录访问认证页面，重定向到首页
   if (pathname.startsWith('/auth') && token) {
-    return NextResponse.redirect(new URL('/', request.url));
+    // 验证 token 有效性
+    try {
+      jwt.verify(token, JWT_SECRET);
+      return NextResponse.redirect(new URL('/', request.url));
+    } catch {
+      // Token 无效，允许用户访问登录页面
+      return NextResponse.next();
+    }
   }
 
   return NextResponse.next();

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getAuthToken } from '@/lib/auth-client';
 
 interface Preference {
   id: string;
@@ -37,7 +38,7 @@ export default function PreferencesPage() {
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMember, setSelectedMember] = useState<string>('');
-  
+
   // 添加偏好表单
   const [showAddModal, setShowAddModal] = useState(false);
   const [type, setType] = useState<'LIKE' | 'DISLIKE' | 'NEUTRAL'>('LIKE');
@@ -52,10 +53,10 @@ export default function PreferencesPage() {
 
   const fetchPreferences = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = await getAuthToken();
       const res = await fetch('/api/preferences', {
         headers: {
-          'Authorization': `Bearer ${token || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -88,12 +89,12 @@ export default function PreferencesPage() {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = await getAuthToken();
       const res = await fetch('/api/preferences', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           memberId: selectedMember,
@@ -103,6 +104,11 @@ export default function PreferencesPage() {
           intensity,
         }),
       });
+
+      if (res.status === 401) {
+        router.push('/auth/login');
+        return;
+      }
 
       if (!res.ok) {
         const data = await res.json();
@@ -124,13 +130,24 @@ export default function PreferencesPage() {
     if (!confirm('确定要删除该偏好吗？')) return;
 
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`/api/preferences/${id}`, {
+      const token = await getAuthToken();
+      const res = await fetch(`/api/preferences/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
+
+      if (res.status === 401) {
+        router.push('/auth/login');
+        return;
+      }
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || '删除失败');
+        return;
+      }
 
       await fetchPreferences();
     } catch (error) {

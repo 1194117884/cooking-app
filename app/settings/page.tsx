@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getAuthToken } from '@/lib/auth-client';
 
 interface User {
   id: string;
@@ -14,7 +15,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // 个人资料
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,10 +36,10 @@ export default function SettingsPage() {
 
   const fetchUser = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = await getAuthToken();
       const res = await fetch('/api/auth/me', {
         headers: {
-          'Authorization': `Bearer ${token || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -64,12 +65,12 @@ export default function SettingsPage() {
     setProfileMessage('');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = await getAuthToken();
       const res = await fetch('/api/settings/profile', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ name, email }),
       });
@@ -110,12 +111,12 @@ export default function SettingsPage() {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = await getAuthToken();
       const res = await fetch('/api/settings/password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ currentPassword, newPassword }),
       });
@@ -170,11 +171,11 @@ export default function SettingsPage() {
         {/* Profile Section */}
         <div className="bg-white rounded-2xl shadow p-6 mb-6">
           <h2 className="text-xl font-bold mb-4">👤 个人资料</h2>
-          
+
           {profileMessage && (
             <div className={`mb-4 p-3 rounded-lg text-sm ${
-              profileMessage.startsWith('✅') 
-                ? 'bg-green-50 text-green-700' 
+              profileMessage.startsWith('✅')
+                ? 'bg-green-50 text-green-700'
                 : 'bg-red-50 text-red-700'
             }`}>
               {profileMessage}
@@ -221,11 +222,11 @@ export default function SettingsPage() {
         {/* Change Password Section */}
         <div className="bg-white rounded-2xl shadow p-6 mb-6">
           <h2 className="text-xl font-bold mb-4">🔒 修改密码</h2>
-          
+
           {passwordMessage && (
             <div className={`mb-4 p-3 rounded-lg text-sm ${
-              passwordMessage.startsWith('✅') 
-                ? 'bg-green-50 text-green-700' 
+              passwordMessage.startsWith('✅')
+                ? 'bg-green-50 text-green-700'
                 : 'bg-red-50 text-red-700'
             }`}>
               {passwordMessage}

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Skeleton from '@/components/Skeleton';
 import Link from 'next/link';
+import { getAuthToken } from '@/lib/auth-client';
 
 interface DashboardStats {
   recipeCount: number;
@@ -29,6 +30,9 @@ async function fetchDashboard() {
 }
 
 async function generateMealPlans() {
+  // 获取认证token
+  const token = await getAuthToken();
+
   // 获取本周一日期
   const today = new Date();
   const dayOfWeek = today.getDay() || 7;
@@ -40,7 +44,7 @@ async function generateMealPlans() {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify({ weekStartDate: monday.toISOString() }),
   });
@@ -154,13 +158,13 @@ export default function Home() {
             <h3 className="font-semibold text-lg mb-1">菜谱库</h3>
             <p className="text-sm text-gray-600">浏览{stats?.recipeCount || 0}道美味佳肴</p>
           </a>
-          
+
           <a href="/planner" className="card p-6 bg-white rounded-xl shadow hover:shadow-lg transition-shadow cursor-pointer">
             <div className="text-3xl mb-3">📅</div>
             <h3 className="font-semibold text-lg mb-1">周计划</h3>
             <p className="text-sm text-gray-600">智能规划每周菜单</p>
           </a>
-          
+
           <a href="/shopping" className="card p-6 bg-white rounded-xl shadow hover:shadow-lg transition-shadow cursor-pointer">
             <div className="text-3xl mb-3">🛒</div>
             <h3 className="font-semibold text-lg mb-1">采购清单</h3>

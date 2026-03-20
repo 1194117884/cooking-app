@@ -17,6 +17,7 @@ import {
   LineChart,
   Line,
 } from 'recharts';
+import { getAuthToken } from '@/lib/auth-client';
 
 interface NutritionData {
   summary: {
@@ -63,10 +64,10 @@ export default function NutritionPage() {
 
   const fetchNutrition = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = await getAuthToken();
       const res = await fetch(`/api/nutrition?range=${range}`, {
         headers: {
-          'Authorization': `Bearer ${token || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 

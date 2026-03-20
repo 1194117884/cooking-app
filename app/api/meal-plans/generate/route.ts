@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '@/lib/auth';
 import { MealType } from '@prisma/client';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+import { AppError, handleError, createErrorResponse } from '@/lib/errors';
 
 /**
  * 智能生成周计划 API
@@ -11,20 +10,25 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-producti
  */
 export async function POST(request: Request) {
   try {
-    // 验证 token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
-    }
+    const userId = await verifyToken(request as Request & { headers: Headers; cookies: any });
 
-    const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    if (!userId) {
+      throw new AppError(
+        '未授权访问',
+        AppError.AUTHENTICATION_ERROR,
+        401
+      );
+    }
 
     const body = await request.json();
     const { weekStartDate } = body;
 
     if (!weekStartDate) {
-      return NextResponse.json({ error: '请提供周开始日期' }, { status: 400 });
+      throw new AppError(
+        '请提供周开始日期',
+        AppError.INVALID_INPUT,
+        400
+      );
     }
 
     const startOfWeek = new Date(weekStartDate);
@@ -32,7 +36,7 @@ export async function POST(request: Request) {
 
     // 获取用户的家庭成员和偏好
     const members = await prisma.familyMember.findMany({
-      where: { userId: decoded.userId },
+      where: { userId: userId },
       include: { preferences: true },
     });
 
@@ -71,9 +75,10 @@ export async function POST(request: Request) {
     });
 
     if (recipes.length < 7) {
-      return NextResponse.json(
-        { error: '可用菜谱不足，请先添加更多菜谱' },
-        { status: 400 }
+      throw new AppError(
+        '可用菜谱不足，请先添加更多菜谱',
+        AppError.VALIDATION_ERROR,
+        400
       );
     }
 
@@ -87,14 +92,16 @@ export async function POST(request: Request) {
     for (let day = 1; day <= 7; day++) {
       for (const mealType of mealTypes) {
         // 根据餐点类型筛选合适的菜谱
-        let candidates = recipes.filter((r) => {
-          // 早餐偏好简单快捷
-          if (mealType === 'BREAKFAST') {
-            return r.cookTimeMin <= 20 && r.difficulty === 'EASY';
-          }
-          // 午餐和晚餐可以更丰盛
-          return true;
-        });
+        let candidates = [...recipes]; // 创建副本避免直接修改
+
+        // 对早餐进行适度筛选，不过于严格
+        if (mealType === 'BREAKFAST') {
+          // 调整早餐筛选条件，使其更宽松
+          candidates = recipes.filter((r) => {
+            // 早餐仍然倾向于选择简单、快速的菜谱，但条件更宽松
+            return r.cookTimeMin <= 30; // 放宽到30分钟内
+          });
+        }
 
         // 排除已使用的菜谱
         candidates = candidates.filter((r) => !usedRecipes.has(r.id));
@@ -123,23 +130,42 @@ export async function POST(request: Request) {
             score += 1;
           }
 
+          // 对于早餐，简单易做的菜谱额外加分
+          if (mealType === 'BREAKFAST' && recipe.difficulty === 'EASY') {
+            score += 1.5;
+          }
+
           return { recipe, score };
         });
 
         scoredCandidates.sort((a, b) => b.score - a.score);
 
         // 选择得分最高的
-        const selected = scoredCandidates[0].recipe;
-        usedRecipes.add(selected.id);
+        if (scoredCandidates.length > 0) {
+          const selected = scoredCandidates[0].recipe;
+          usedRecipes.add(selected.id);
 
-        mealPlans.push({
-          userId: decoded.userId,
-          weekStartDate: startOfWeek,
-          mealType,
-          dayOfWeek: day,
-          recipeId: selected.id,
-          servingsActual: members.length > 0 ? members.length : 4,
-        });
+          mealPlans.push({
+            userId: userId,
+            weekStartDate: startOfWeek,
+            mealType,
+            dayOfWeek: day,
+            recipeId: selected.id,
+            servingsActual: members.length > 0 ? members.length : 4,
+          });
+        } else {
+          // 如果没有合适的菜谱，随机选择一个
+          const randomIndex = Math.floor(Math.random() * recipes.length);
+          const selected = recipes[randomIndex];
+          mealPlans.push({
+            userId: userId,
+            weekStartDate: startOfWeek,
+            mealType,
+            dayOfWeek: day,
+            recipeId: selected.id,
+            servingsActual: members.length > 0 ? members.length : 4,
+          });
+        }
       }
     }
 
@@ -164,10 +190,11 @@ export async function POST(request: Request) {
       })),
     });
   } catch (error) {
-    console.error('Generate meal plans error:', error);
+    const appError = handleError(error);
+
     return NextResponse.json(
-      { error: '生成失败，请稍后重试' },
-      { status: 500 }
+      createErrorResponse(appError),
+      { status: appError.statusCode }
     );
   }
 }

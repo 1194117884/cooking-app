@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Skeleton from '@/components/Skeleton';
+import { getAuthToken } from '@/lib/auth-client';
 
 interface Recipe {
   id: string;
@@ -34,6 +35,8 @@ const MEAL_TYPES = [
 ];
 
 async function fetchRecipes(): Promise<Recipe[]> {
+  const token = await getAuthToken();
+
   const res = await fetch('/api/recipes');
   if (!res.ok) throw new Error('获取菜谱失败');
   const data = await res.json();
@@ -41,9 +44,11 @@ async function fetchRecipes(): Promise<Recipe[]> {
 }
 
 async function fetchMealPlans(): Promise<MealPlan[]> {
+  const token = await getAuthToken();
+
   const res = await fetch('/api/meal-plans', {
     headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'Authorization': `Bearer ${token}`,
     },
   });
   if (!res.ok) throw new Error('获取计划失败');
@@ -52,9 +57,11 @@ async function fetchMealPlans(): Promise<MealPlan[]> {
 }
 
 async function fetchMembers(): Promise<Member[]> {
+  const token = await getAuthToken();
+
   const res = await fetch('/api/members', {
     headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'Authorization': `Bearer ${token}`,
     },
   });
   if (!res.ok) throw new Error('获取成员失败');
@@ -63,11 +70,13 @@ async function fetchMembers(): Promise<Member[]> {
 }
 
 async function submitRating(mealPlanId: string, memberId: string, rating: number, comment: string) {
+  const token = await getAuthToken();
+
   const res = await fetch('/api/meal-ratings', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify({ mealPlanId, memberId, rating, comment }),
   });
@@ -76,11 +85,13 @@ async function submitRating(mealPlanId: string, memberId: string, rating: number
 }
 
 async function addMealPlan(dayOfWeek: number, mealType: string, recipeId: string) {
+  const token = await getAuthToken();
+
   const res = await fetch('/api/meal-plans', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify({ dayOfWeek, mealType, recipeId }),
   });
@@ -89,10 +100,12 @@ async function addMealPlan(dayOfWeek: number, mealType: string, recipeId: string
 }
 
 async function removeMealPlan(mealPlanId: string) {
+  const token = await getAuthToken();
+
   const res = await fetch(`/api/meal-plans/${mealPlanId}`, {
     method: 'DELETE',
     headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'Authorization': `Bearer ${token}`,
     },
   });
   if (!res.ok) throw new Error('删除失败');
@@ -349,15 +362,23 @@ export default function PlannerPage() {
             onClick={() => {
               // 触发智能生成
               if (confirm('确定要智能生成一周菜单吗？这会替换现有计划。')) {
-                fetch('/api/meal-plans/generate', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-                  },
-                  body: JSON.stringify({ weekStartDate: new Date().toISOString() }),
-                }).then(() => {
-                  queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
+                getAuthToken().then(token => {
+                  fetch('/api/meal-plans/generate', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ weekStartDate: new Date().toISOString() }),
+                  })
+                  .then(() => {
+                    queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
+                  })
+                  .catch(error => {
+                    console.error('生成计划失败:', error);
+                  });
+                }).catch(error => {
+                  console.error('获取认证失败:', error);
                 });
               }
             }}

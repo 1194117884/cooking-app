@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getAuthToken } from '@/lib/auth-client';
 
 interface FamilyMember {
   id: string;
@@ -42,10 +43,10 @@ export default function MembersPage() {
 
   const fetchMembers = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = await getAuthToken();
       const res = await fetch('/api/members', {
         headers: {
-          'Authorization': `Bearer ${token || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -65,15 +66,20 @@ export default function MembersPage() {
 
   const handleAddMember = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = await getAuthToken();
       const res = await fetch('/api/members', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ name, role, avatarColor, dietaryGoal }),
       });
+
+      if (res.status === 401) {
+        router.push('/auth/login');
+        return;
+      }
 
       if (!res.ok) {
         const data = await res.json();
@@ -94,15 +100,20 @@ export default function MembersPage() {
     if (!editingMember) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = await getAuthToken();
       const res = await fetch(`/api/members/${editingMember.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ name, role, avatarColor, dietaryGoal }),
       });
+
+      if (res.status === 401) {
+        router.push('/auth/login');
+        return;
+      }
 
       if (!res.ok) {
         const data = await res.json();
@@ -123,13 +134,24 @@ export default function MembersPage() {
     if (!confirm('确定要删除该家庭成员吗？')) return;
 
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`/api/members/${id}`, {
+      const token = await getAuthToken();
+      const res = await fetch(`/api/members/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
+
+      if (res.status === 401) {
+        router.push('/auth/login');
+        return;
+      }
+
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || '删除失败');
+        return;
+      }
 
       await fetchMembers();
     } catch (error) {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getAuthToken } from '@/lib/auth-client';
 
 interface Recipe {
   id: string;
@@ -28,10 +29,10 @@ export default function RecommendPage() {
 
   const fetchRecommendations = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = await getAuthToken();
       const res = await fetch('/api/recommend?limit=12', {
         headers: {
-          'Authorization': `Bearer ${token || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 

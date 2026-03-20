@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import ImageUpload from '@/components/ImageUpload';
+import { getAuthToken } from '@/lib/auth-client';
 
 const DIFFICULTIES = [
   { value: 'EASY', label: '简单' },
@@ -14,14 +15,22 @@ const DIFFICULTIES = [
 const CUISINE_TYPES = ['川菜', '粤菜', '湘菜', '鲁菜', '苏菜', '浙菜', '闽菜', '徽菜', '家常菜', '其他'];
 
 async function createRecipe(recipeData: any) {
+  const token = await getAuthToken();
+
   const res = await fetch('/api/recipes', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(recipeData),
   });
+
+  if (res.status === 401) {
+    window.location.href = '/auth/login';
+    throw new Error('未授权访问');
+  }
+
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.error || '创建失败');

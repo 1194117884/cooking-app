@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { getAuthToken } from '@/lib/auth-client';
 
 interface ImageUploadProps {
   value?: string;
@@ -21,16 +22,22 @@ export default function ImageUpload({ value, onChange, className = '' }: ImageUp
     setError('');
 
     try {
+      const token = await getAuthToken();
       const formData = new FormData();
       formData.append('file', file);
 
       const res = await fetch('/api/upload', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: formData,
       });
+
+      if (res.status === 401) {
+        window.location.href = '/auth/login';
+        return;
+      }
 
       const data = await res.json();
 
