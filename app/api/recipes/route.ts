@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken, sanitizeInput } from '@/lib/auth';
+import { verifyToken, sanitizeInput, sanitizeRichInput } from '@/lib/auth';
 
 export async function GET() {
   try {
@@ -72,10 +72,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // 清理输入数据
+    // 清理输入数据 with enhanced sanitization
     const sanitizedName = sanitizeInput(name);
     const sanitizedCuisineType = sanitizeInput(cuisineType);
-    const sanitizedSteps = sanitizeInput(steps);
+    const sanitizedSteps = sanitizeRichInput(steps); // Use enhanced sanitization for steps which may contain formatting
     const sanitizedCoverImageUrl = coverImageUrl ? sanitizeInput(coverImageUrl as string) : null;
     const sanitizedTags = Array.isArray(tags) ? tags.map(tag => sanitizeInput(String(tag))) : [];
 

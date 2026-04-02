@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
+import { verifyTokenSync } from '@/lib/auth'; // Import the synchronous verifyToken function
 
 // 需要认证的路由（前缀匹配）
 const protectedRoutes = [
@@ -13,34 +13,25 @@ const protectedRoutes = [
   '/nutrition',
 ];
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  // 获取 token（优先从 cookie）
-  const token = request.cookies.get('token')?.value;
 
   // 检查是否需要认证
   const needsAuth = protectedRoutes.some((route) => pathname.startsWith(route));
 
+  // 使用同步验证函数检查用户是否已认证
+  const isAuthenticated = verifyTokenSync(request) !== null;
+
   // 如果访问保护路由但没有 token，重定向到登录页
-  if (needsAuth && !token) {
+  if (needsAuth && !isAuthenticated) {
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   // 如果已登录访问认证页面，重定向到首页
-  if (pathname.startsWith('/auth') && token) {
-    // 验证 token 有效性
-    try {
-      jwt.verify(token, JWT_SECRET);
-      return NextResponse.redirect(new URL('/', request.url));
-    } catch {
-      // Token 无效，允许用户访问登录页面
-      return NextResponse.next();
-    }
+  if (pathname.startsWith('/auth') && isAuthenticated) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();

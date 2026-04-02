@@ -1,9 +1,10 @@
 import { ZodIssue } from 'zod';
+import sanitizeHtml from 'sanitize-html';
 
 /**
- * 格式化Zod验证错误为用户友好的错误消息
- * @param issues Zod验证问题数组
- * @returns 格式化的错误消息
+ * Format Zod validation errors to user-friendly error messages
+ * @param issues Zod validation issue array
+ * @returns Formatted error message
  */
 export function formatZodErrors(issues: ZodIssue[]): string {
   const errors = issues.map(issue => {
@@ -16,31 +17,56 @@ export function formatZodErrors(issues: ZodIssue[]): string {
 }
 
 /**
- * 清理用户输入数据
- * @param input 用户输入
- * @returns 清理后的数据
+ * Sanitize user input data
+ * @param input User input
+ * @returns Sanitized data
  */
 export function sanitizeInput(input: string): string {
   if (typeof input !== 'string') {
     return '';
   }
 
-  // 去除首尾空白字符
+  // First trim whitespace
   let sanitized = input.trim();
 
-  // 防止脚本注入，移除潜在危险的HTML标签
-  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-  sanitized = sanitized.replace(/javascript:/gi, '');
-  sanitized = sanitized.replace(/on\w+\s*=/gi, '');
+  // Then sanitize HTML content to prevent XSS
+  sanitized = sanitizeHtml(sanitized, {
+    allowedTags: [], // Allow no HTML tags for basic text input
+    allowedAttributes: {},
+    disallowedTagsMode: 'escape',
+  });
 
   return sanitized;
 }
 
 /**
- * 验证用户输入的通用函数
- * @param data 待验证的数据
- * @param schema Zod验证模式
- * @returns 验证结果
+ * Sanitize rich text that may contain safe HTML
+ * @param input User input that may contain basic HTML
+ * @returns Sanitized HTML content
+ */
+export function sanitizeRichInput(input: string): string {
+  if (typeof input !== 'string') {
+    return '';
+  }
+
+  // Trim whitespace
+  let sanitized = input.trim();
+
+  // Sanitize HTML content allowing only safe tags for rich text
+  sanitized = sanitizeHtml(sanitized, {
+    allowedTags: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li'],
+    allowedAttributes: {},
+    disallowedTagsMode: 'escape',
+  });
+
+  return sanitized;
+}
+
+/**
+ * Validate user input with a generic function
+ * @param data Data to validate
+ * @param schema Zod validation schema
+ * @returns Validation result
  */
 export function validateInput<T>(
   data: unknown,
@@ -57,27 +83,27 @@ export function validateInput<T>(
 }
 
 /**
- * 验证ID参数
- * @param id 待验证的ID
- * @returns 是否为有效ID
+ * Validate ID parameter
+ * @param id ID to validate
+ * @returns Whether it's a valid ID
  */
 export function validateId(id: string): boolean {
-  // 验证UUID格式
+  // Validate UUID format
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(id);
 }
 
 /**
- * 验证查询参数
- * @param params 查询参数
- * @returns 验证后的安全参数
+ * Validate query parameters
+ * @param params Query parameters
+ * @returns Validated safe parameters
  */
 export function validateQueryParams(params: Record<string, string | undefined>): Record<string, string> {
   const validated: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(params)) {
     if (typeof value === 'string') {
-      // 验证键名，防止恶意参数名
+      // Validate key name to prevent malicious parameter names
       if (/^[a-zA-Z0-9_-]+$/.test(key)) {
         validated[key] = sanitizeInput(value);
       }

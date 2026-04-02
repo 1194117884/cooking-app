@@ -2,9 +2,30 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { generateToken, validateEmail } from '@/lib/auth';
+import { RateLimiter } from '@/lib/rate-limiter';
+
+// Create a rate limiter for login attempts (max 5 attempts per 15 minutes)
+const loginRateLimiter = new RateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: '登录尝试次数过多，请稍后再试'
+});
 
 export async function POST(request: Request) {
   try {
+    // Extract IP address for rate limiting
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded ? (Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0]).trim() : '127.0.0.1';
+
+    // Check rate limit
+    const rateLimitResult = loginRateLimiter.check(`login:${ip}`);
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: rateLimitResult.message },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { email, password } = body;
 
@@ -86,9 +107,22 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     console.error('Login error:', error);
-    return NextResponse.json(
-      { error: '登录失败，请稍后重试' },
-      { status: 500 }
-    );
+
+    // In production, don't return specific error details to prevent information disclosure
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: '登录过程中发生错误，请稍后重试' },
+        { status: 500 }
+      );
+    } else {
+      // In development, return more detailed error information
+      return NextResponse.json(
+        {
+          error: '登录失败，请稍后重试',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        },
+        { status: 500 }
+      );
+    }
   }
 }

@@ -1,10 +1,14 @@
 import { NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { sanitizeInput, sanitizeRichInput } from './validation'; // Import the enhanced sanitization functions
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable must be set');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 /**
- * 验证请求中的JWT令牌
+ * 验证请求中的JWT令牌 (Async version for API routes)
  * @param request Next.js请求对象
  * @returns 解码后的用户ID，如果验证失败则返回null
  */
@@ -28,6 +32,26 @@ export async function verifyToken(request: NextRequest): Promise<string | null> 
     return null;
   } catch (error) {
     console.error('Token verification error:', error);
+    return null;
+  }
+}
+
+/**
+ * 验证请求中的JWT令牌 (Sync version for middleware)
+ * @param request Next.js请求对象
+ * @returns 解码后的用户ID，如果验证失败则返回null
+ */
+export function verifyTokenSync(request: NextRequest): string | null {
+  try {
+    // 尝试从 cookie 获取 token
+    const token = request.cookies.get('token')?.value;
+    if (token) {
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      return decoded.userId;
+    }
+
+    return null;
+  } catch (error) {
     return null;
   }
 }
@@ -108,3 +132,6 @@ export function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }
+
+// Re-export sanitization functions so other modules can import them from auth
+export { sanitizeInput, sanitizeRichInput };
