@@ -3,7 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { JSONContent } from '@tiptap/react';
 import ImageUpload from '@/components/ImageUpload';
+import RichTextEditor from '@/components/RichTextEditor';
+import { createEmptyDoc } from '@/lib/tiptap-utils';
 import { getAuthToken } from '@/lib/auth-client';
 
 const DIFFICULTIES = [
@@ -50,7 +53,7 @@ export default function AddRecipePage() {
     caloriesPerServing: '',
     tags: '',
     coverImageUrl: '',
-    steps: '',
+    steps: createEmptyDoc() as JSONContent,
   });
 
   const createMutation = useMutation({
@@ -66,7 +69,6 @@ export default function AddRecipePage() {
     createMutation.mutate({
       ...formData,
       tags: formData.tags.split(',').map((t) => t.trim()).filter(Boolean),
-      steps: JSON.stringify(formData.steps.split('\n').filter(Boolean)),
       caloriesPerServing: formData.caloriesPerServing ? parseInt(formData.caloriesPerServing) : null,
     });
   };
@@ -213,15 +215,12 @@ export default function AddRecipePage() {
           {/* Steps */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              烹饪步骤（每行一步）*
+              烹饪步骤 *
             </label>
-            <textarea
-              required
-              rows={6}
+            <RichTextEditor
               value={formData.steps}
-              onChange={(e) => setFormData({ ...formData, steps: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-              placeholder="1. 准备食材...&#10;2. 热锅凉油...&#10;3. 放入调料..."
+              onChange={(content) => setFormData({ ...formData, steps: content })}
+              placeholder="写下你的烹饪步骤，支持加粗、高亮、插入图片..."
             />
           </div>
 
