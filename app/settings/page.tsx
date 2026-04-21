@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAuthToken } from '@/lib/auth-client';
+import { api } from '@/lib/api-client';
 
 interface User {
   id: string;
@@ -34,21 +34,10 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 使用新的 api 客户端 - 自动处理认证和 401
   const fetchUser = async () => {
     try {
-      const token = await getAuthToken();
-      const res = await fetch('/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (res.status === 401) {
-        router.push('/auth/login');
-        return;
-      }
-
-      const data = await res.json();
+      const data = await api.get('/api/auth/me');
       setUser(data.user);
       setName(data.user.name);
       setEmail(data.user.email);
@@ -65,28 +54,12 @@ export default function SettingsPage() {
     setProfileMessage('');
 
     try {
-      const token = await getAuthToken();
-      const res = await fetch('/api/settings/profile', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name, email }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setProfileMessage(data.error || '更新失败');
-        return;
-      }
-
+      const data = await api.patch('/api/settings/profile', { name, email });
       setProfileMessage('✅ 个人资料已更新');
       setUser(data.user);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update profile:', error);
-      setProfileMessage('更新失败');
+      setProfileMessage(error.message || '更新失败');
     } finally {
       setProfileSaving(false);
     }
@@ -111,30 +84,18 @@ export default function SettingsPage() {
     }
 
     try {
-      const token = await getAuthToken();
-      const res = await fetch('/api/settings/password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ currentPassword, newPassword }),
+      await api.post('/api/settings/password', {
+        currentPassword,
+        newPassword,
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setPasswordMessage(`❌ ${data.error}`);
-        return;
-      }
 
       setPasswordMessage('✅ 密码修改成功');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to change password:', error);
-      setPasswordMessage('修改失败');
+      setPasswordMessage(`❌ ${error.message || '修改失败'}`);
     } finally {
       setPasswordSaving(false);
     }

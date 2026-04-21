@@ -136,6 +136,7 @@ export default function RichTextEditor({
       }),
     ],
     content: value,
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       onChange(editor.getJSON());
     },

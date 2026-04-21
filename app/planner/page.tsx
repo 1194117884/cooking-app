@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Skeleton from '@/components/Skeleton';
-import { getAuthToken } from '@/lib/auth-client';
+import { api } from '@/lib/api-client';
 
 interface Recipe {
   id: string;
@@ -34,82 +34,41 @@ const MEAL_TYPES = [
   { key: 'DINNER', label: '晚餐', icon: '🌙' },
 ];
 
+// 使用新的 api 客户端 - 自动处理认证和 401
 async function fetchRecipes(): Promise<Recipe[]> {
-  const token = await getAuthToken();
-
-  const res = await fetch('/api/recipes');
-  if (!res.ok) throw new Error('获取菜谱失败');
-  const data = await res.json();
+  const data = await api.get('/api/recipes');
   return data.recipes;
 }
 
 async function fetchMealPlans(): Promise<MealPlan[]> {
-  const token = await getAuthToken();
-
-  const res = await fetch('/api/meal-plans', {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-  if (!res.ok) throw new Error('获取计划失败');
-  const data = await res.json();
+  const data = await api.get('/api/meal-plans');
   return data.mealPlans || [];
 }
 
 async function fetchMembers(): Promise<Member[]> {
-  const token = await getAuthToken();
-
-  const res = await fetch('/api/members', {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-  if (!res.ok) throw new Error('获取成员失败');
-  const data = await res.json();
+  const data = await api.get('/api/members');
   return data.members;
 }
 
 async function submitRating(mealPlanId: string, memberId: string, rating: number, comment: string) {
-  const token = await getAuthToken();
-
-  const res = await fetch('/api/meal-ratings', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ mealPlanId, memberId, rating, comment }),
+  return api.post('/api/meal-ratings', {
+    mealPlanId,
+    memberId,
+    rating,
+    comment,
   });
-  if (!res.ok) throw new Error('提交评分失败');
-  return res.json();
 }
 
 async function addMealPlan(dayOfWeek: number, mealType: string, recipeId: string) {
-  const token = await getAuthToken();
-
-  const res = await fetch('/api/meal-plans', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ dayOfWeek, mealType, recipeId }),
+  return api.post('/api/meal-plans', {
+    dayOfWeek,
+    mealType,
+    recipeId,
   });
-  if (!res.ok) throw new Error('添加失败');
-  return res.json();
 }
 
 async function removeMealPlan(mealPlanId: string) {
-  const token = await getAuthToken();
-
-  const res = await fetch(`/api/meal-plans/${mealPlanId}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-  if (!res.ok) throw new Error('删除失败');
-  return res.json();
+  return api.delete(`/api/meal-plans/${mealPlanId}`);
 }
 
 export default function PlannerPage() {

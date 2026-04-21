@@ -85,8 +85,9 @@ export async function POST(request: Request) {
     // 生成 JWT
     const token = generateToken({ userId: user.id, email: user.email });
 
-    // 创建响应并设置 cookie
-    const response = NextResponse.json({
+    // 返回 token，由前端存储到 localStorage
+    // 不再设置 cookie，改为通过 ck-token header 传递
+    return NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
@@ -94,17 +95,6 @@ export async function POST(request: Request) {
       },
       token,
     });
-
-    // 设置更安全的 cookie（httpOnly 设置为 true，提高安全性）
-    response.cookies.set('token', token, {
-      httpOnly: true, // 设置为 true 提高安全性
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict', // 更严格的同站策略
-      maxAge: 60 * 60 * 24 * 7, // 7天
-      path: '/',
-    });
-
-    return response;
   } catch (error) {
     console.error('Login error:', error);
 

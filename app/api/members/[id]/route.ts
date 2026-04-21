@@ -1,85 +1,62 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+import { AuthenticatedRequest, withAuthAndErrorHandler, createErrorResponse } from '@/lib/api-wrapper';
 
 // 更新家庭成员
-export async function PATCH(
-  request: Request,
+async function updateMember(
+  req: AuthenticatedRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    // 验证 token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
-    }
+  const userId = req.userId;
+  const body = await req.json();
+  const { name, role, avatarColor, dietaryGoal, isActive } = body;
 
-    const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+  // 验证成员属于当前用户
+  const existing = await prisma.familyMember.findFirst({
+    where: { id: params.id, userId },
+  });
 
-    const body = await request.json();
-    const { name, role, avatarColor, dietaryGoal, isActive } = body;
-
-    // 验证成员属于当前用户
-    const existing = await prisma.familyMember.findFirst({
-      where: { id: params.id, userId: decoded.userId },
-    });
-
-    if (!existing) {
-      return NextResponse.json({ error: '成员不存在' }, { status: 404 });
-    }
-
-    const member = await prisma.familyMember.update({
-      where: { id: params.id },
-      data: {
-        name,
-        role,
-        avatarColor,
-        dietaryGoal,
-        isActive,
-      },
-    });
-
-    return NextResponse.json({ member });
-  } catch (error) {
-    console.error('Update member error:', error);
-    return NextResponse.json({ error: '更新失败' }, { status: 500 });
+  if (!existing) {
+    return createErrorResponse('NOT_FOUND', '成员不存在', 404);
   }
+
+  const member = await prisma.familyMember.update({
+    where: { id: params.id },
+    data: {
+      name,
+      role,
+      avatarColor,
+      dietaryGoal,
+      isActive,
+    },
+  });
+
+  return NextResponse.json({ member });
 }
 
 // 删除家庭成员
-export async function DELETE(
-  request: Request,
+async function deleteMember(
+  req: AuthenticatedRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    // 验证 token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
-    }
+  const userId = req.userId;
 
-    const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+  // 验证成员属于当前用户
+  const existing = await prisma.familyMember.findFirst({
+    where: { id: params.id, userId },
+  });
 
-    // 验证成员属于当前用户
-    const existing = await prisma.familyMember.findFirst({
-      where: { id: params.id, userId: decoded.userId },
-    });
-
-    if (!existing) {
-      return NextResponse.json({ error: '成员不存在' }, { status: 404 });
-    }
-
-    await prisma.familyMember.delete({
-      where: { id: params.id },
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Delete member error:', error);
-    return NextResponse.json({ error: '删除失败' }, { status: 500 });
+  if (!existing) {
+    return createErrorResponse('NOT_FOUND', '成员不存在', 404);
   }
+
+  await prisma.familyMember.delete({
+    where: { id: params.id },
+  });
+
+  return NextResponse.json({ success: true });
 }
+
+// 导出包装后的处理器
+export const PATCH = withAuthAndErrorHandler(updateMember);
+export const DELETE = withAuthAndErrorHandler(deleteMember);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getAuthToken } from '@/lib/auth-client';
+import { api } from '@/lib/api-client';
 
 interface ShoppingListItem {
   id: string;
@@ -31,21 +31,10 @@ export default function ShoppingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 使用新的 api 客户端 - 自动处理认证和 401 跳转
   const fetchShoppingList = async () => {
     try {
-      const token = await getAuthToken();
-      const res = await fetch('/api/shopping-list', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (res.status === 401) {
-        window.location.href = '/auth/login';
-        return;
-      }
-
-      const data = await res.json();
+      const data = await api.get('/api/shopping-list');
       setItems(data.items || []);
       setLoading(false);
     } catch (error) {
@@ -58,28 +47,14 @@ export default function ShoppingPage() {
     const item = items.find((i) => i.id === id);
     if (item) {
       try {
-        const token = await getAuthToken();
-        const res = await fetch(`/api/shopping-list/items/${id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ isPurchased: !item.isPurchased }),
+        await api.patch(`/api/shopping-list/items/${id}`, {
+          isPurchased: !item.isPurchased,
         });
-
-        if (res.status === 401) {
-          window.location.href = '/auth/login';
-          return;
-        }
-
-        if (res.ok) {
-          setItems(
-            items.map((i) =>
-              i.id === id ? { ...i, isPurchased: !i.isPurchased } : i
-            )
-          );
-        }
+        setItems(
+          items.map((i) =>
+            i.id === id ? { ...i, isPurchased: !i.isPurchased } : i
+          )
+        );
       } catch (error) {
         console.error('Failed to update item:', error);
       }
@@ -88,21 +63,7 @@ export default function ShoppingPage() {
 
   const generateFromMealPlan = async () => {
     try {
-      const token = await getAuthToken();
-      const res = await fetch('/api/shopping-list/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (res.status === 401) {
-        window.location.href = '/auth/login';
-        return;
-      }
-
-      const data = await res.json();
+      const data = await api.post('/api/shopping-list/generate');
       setItems(data.items || []);
     } catch (error) {
       console.error('Failed to generate shopping list:', error);

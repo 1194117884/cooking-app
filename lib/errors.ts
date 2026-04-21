@@ -82,6 +82,23 @@ export function handleError(error: unknown): AppError {
     return error;
   }
 
+  // 处理JWT错误
+  if (error instanceof Error && error.name === 'TokenExpiredError') {
+    return new AppError(
+      '登录已过期，请重新登录',
+      AppErrorCode.AUTHENTICATION_ERROR,
+      401
+    );
+  }
+
+  if (error instanceof Error && error.name === 'JsonWebTokenError') {
+    return new AppError(
+      '无效的登录凭证',
+      AppErrorCode.AUTHENTICATION_ERROR,
+      401
+    );
+  }
+
   // 如果是Prisma错误，转换为适当的AppError
   if (isPrismaError(error)) {
     return handlePrismaError(error);

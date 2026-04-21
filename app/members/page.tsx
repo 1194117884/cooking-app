@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAuthToken } from '@/lib/auth-client';
+import { api } from '@/lib/api-client';
 
 interface FamilyMember {
   id: string;
@@ -41,21 +41,10 @@ export default function MembersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 使用新的 api 客户端 - 自动处理认证和 401 跳转
   const fetchMembers = async () => {
     try {
-      const token = await getAuthToken();
-      const res = await fetch('/api/members', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (res.status === 401) {
-        router.push('/auth/login');
-        return;
-      }
-
-      const data = await res.json();
+      const data = await api.get('/api/members');
       setMembers(data.members || []);
       setLoading(false);
     } catch (error) {
@@ -66,33 +55,19 @@ export default function MembersPage() {
 
   const handleAddMember = async () => {
     try {
-      const token = await getAuthToken();
-      const res = await fetch('/api/members', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name, role, avatarColor, dietaryGoal }),
+      await api.post('/api/members', {
+        name,
+        role,
+        avatarColor,
+        dietaryGoal,
       });
-
-      if (res.status === 401) {
-        router.push('/auth/login');
-        return;
-      }
-
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || '添加失败');
-        return;
-      }
 
       await fetchMembers();
       setShowAddModal(false);
       resetForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add member:', error);
-      alert('添加失败');
+      alert(error.message || '添加失败');
     }
   };
 
@@ -100,33 +75,19 @@ export default function MembersPage() {
     if (!editingMember) return;
 
     try {
-      const token = await getAuthToken();
-      const res = await fetch(`/api/members/${editingMember.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name, role, avatarColor, dietaryGoal }),
+      await api.patch(`/api/members/${editingMember.id}`, {
+        name,
+        role,
+        avatarColor,
+        dietaryGoal,
       });
-
-      if (res.status === 401) {
-        router.push('/auth/login');
-        return;
-      }
-
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || '更新失败');
-        return;
-      }
 
       await fetchMembers();
       setEditingMember(null);
       resetForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to edit member:', error);
-      alert('更新失败');
+      alert(error.message || '更新失败');
     }
   };
 
@@ -134,29 +95,11 @@ export default function MembersPage() {
     if (!confirm('确定要删除该家庭成员吗？')) return;
 
     try {
-      const token = await getAuthToken();
-      const res = await fetch(`/api/members/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (res.status === 401) {
-        router.push('/auth/login');
-        return;
-      }
-
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || '删除失败');
-        return;
-      }
-
+      await api.delete(`/api/members/${id}`);
       await fetchMembers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete member:', error);
-      alert('删除失败');
+      alert(error.message || '删除失败');
     }
   };
 

@@ -14,7 +14,14 @@ const JWT_SECRET = process.env.JWT_SECRET;
  */
 export async function verifyToken(request: NextRequest): Promise<string | null> {
   try {
-    // 尝试从 Authorization header 获取 token
+    // 优先从自定义 ck-token header 获取 token
+    const customToken = request.headers.get('ck-token');
+    if (customToken) {
+      const decoded = jwt.verify(customToken, JWT_SECRET) as { userId: string };
+      return decoded.userId;
+    }
+
+    // 兼容旧 Authorization header
     const authHeader = request.headers.get('authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
@@ -22,10 +29,10 @@ export async function verifyToken(request: NextRequest): Promise<string | null> 
       return decoded.userId;
     }
 
-    // 尝试从 cookie 获取 token
-    const token = request.cookies.get('token')?.value;
-    if (token) {
-      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    // 兼容旧 cookie
+    const cookieToken = request.cookies.get('token')?.value;
+    if (cookieToken) {
+      const decoded = jwt.verify(cookieToken, JWT_SECRET) as { userId: string };
       return decoded.userId;
     }
 
@@ -43,10 +50,25 @@ export async function verifyToken(request: NextRequest): Promise<string | null> 
  */
 export function verifyTokenSync(request: NextRequest): string | null {
   try {
-    // 尝试从 cookie 获取 token
-    const token = request.cookies.get('token')?.value;
-    if (token) {
+    // 优先从自定义 ck-token header 获取 token
+    const customToken = request.headers.get('ck-token');
+    if (customToken) {
+      const decoded = jwt.verify(customToken, JWT_SECRET) as { userId: string };
+      return decoded.userId;
+    }
+
+    // 兼容旧 Authorization header
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
       const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      return decoded.userId;
+    }
+
+    // 兼容旧 cookie
+    const cookieToken = request.cookies.get('token')?.value;
+    if (cookieToken) {
+      const decoded = jwt.verify(cookieToken, JWT_SECRET) as { userId: string };
       return decoded.userId;
     }
 

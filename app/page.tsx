@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Skeleton from '@/components/Skeleton';
 import Link from 'next/link';
-import { getAuthToken } from '@/lib/auth-client';
+import { api } from '@/lib/api-client';
 
 interface DashboardStats {
   recipeCount: number;
@@ -24,15 +24,11 @@ interface Recipe {
 }
 
 async function fetchDashboard() {
-  const res = await fetch('/api/dashboard');
-  if (!res.ok) throw new Error('获取数据失败');
-  return res.json();
+  // 使用新的 api 客户端 - 自动处理认证和错误
+  return api.get('/api/dashboard');
 }
 
 async function generateMealPlans() {
-  // 获取认证token
-  const token = await getAuthToken();
-
   // 获取本周一日期
   const today = new Date();
   const dayOfWeek = today.getDay() || 7;
@@ -40,21 +36,10 @@ async function generateMealPlans() {
   monday.setDate(today.getDate() - dayOfWeek + 1);
   monday.setHours(0, 0, 0, 0);
 
-  const res = await fetch('/api/meal-plans/generate', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ weekStartDate: monday.toISOString() }),
+  // 使用新的 api 客户端 - 自动添加 token 和处理 401
+  return api.post('/api/meal-plans/generate', {
+    weekStartDate: monday.toISOString(),
   });
-
-  if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.error || '生成失败');
-  }
-
-  return res.json();
 }
 
 export default function Home() {
@@ -76,9 +61,10 @@ export default function Home() {
       // 跳转到计划页面
       window.location.href = '/planner';
     },
-    onError: (err: Error) => {
+    onError: (err: unknown) => {
       setGenerating(false);
-      setGenerateError(err.message);
+      const message = err instanceof Error ? err.message : String(err);
+      setGenerateError(message);
     },
   });
 

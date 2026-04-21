@@ -109,13 +109,6 @@ export default function LoginPage() {
             </Link>
           </p>
         </div>
-
-        {/* Demo Account */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600 font-medium mb-2">测试账户：</p>
-          <p className="text-xs text-gray-500">邮箱：yongkl@test.com</p>
-          <p className="text-xs text-gray-500">密码：123456</p>
-        </div>
       </div>
     </main>
   );
