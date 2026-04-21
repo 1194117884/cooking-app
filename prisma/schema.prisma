@@ -71,18 +71,33 @@ model Recipe {
   sourceUrl          String?
   popularity         Int                @default(0)
   isFavorite         Boolean            @default(false)
-  steps              String
+  steps              Json?    @default("{\"type\":\"doc\",\"content\":[]}")
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   mealPlans          MealPlan[]
   ratings            MealRating[]
   ingredients        RecipeIngredient[]
   user               User?              @relation(fields: [userId], references: [id])
+  stepImages         RecipeImage[]
 
   @@index([cuisineType])
   @@index([tags])
   @@index([popularity])
   @@map("recipes")
+}
+
+model RecipeImage {
+  id          String   @id @default(uuid())
+  recipeId    String
+  filename    String
+  url         String
+  alt         String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  recipe      Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId])
+  @@map("recipe_images")
 }
 
 model Ingredient {
