@@ -123,13 +123,6 @@ export default function RecipeDetailPage() {
     }));
     router.push('/planner');
   };
-    // 存储选中的菜谱到 sessionStorage，在计划页面读取
-    sessionStorage.setItem('selectedRecipe', JSON.stringify({
-      id: recipe?.id,
-      name: recipe?.name,
-    }));
-    router.push('/planner');
-  };
 
   if (isLoading) {
     return (

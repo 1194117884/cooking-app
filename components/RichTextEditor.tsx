@@ -54,21 +54,25 @@ export default function RichTextEditor({
   }, []);
 
   const handlePaste = useCallback(
-    async (view: any, event: ClipboardEvent) => {
+    (view: any, event: ClipboardEvent) => {
       const items = event.clipboardData?.items;
       if (!items) return false;
 
-      for (const item of items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
         if (item.type.startsWith('image/')) {
           const file = item.getAsFile();
           if (file) {
             event.preventDefault();
-            const url = await handleImageUpload(file);
-            view.dispatch(
-              view.state.tr.replaceSelectionWith(
-                view.state.schema.nodes.image.create({ src: url })
-              )
-            );
+            handleImageUpload(file).then((url) => {
+              view.dispatch(
+                view.state.tr.replaceSelectionWith(
+                  view.state.schema.nodes.image.create({ src: url })
+                )
+              );
+            }).catch((err) => {
+              console.error('Image upload failed:', err);
+            });
             return true;
           }
         }
@@ -79,24 +83,34 @@ export default function RichTextEditor({
   );
 
   const handleDrop = useCallback(
-    async (view: any, event: DragEvent, _slice: any, moved: boolean) => {
+    (view: any, event: DragEvent, _slice: any, moved: boolean) => {
       if (moved) return false;
 
       const files = event.dataTransfer?.files;
       if (!files) return false;
 
-      const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'));
+      const imageFiles: File[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.type.startsWith('image/')) {
+          imageFiles.push(file);
+        }
+      }
+
       if (imageFiles.length === 0) return false;
 
       event.preventDefault();
 
       for (const file of imageFiles) {
-        const url = await handleImageUpload(file);
-        view.dispatch(
-          view.state.tr.replaceSelectionWith(
-            view.state.schema.nodes.image.create({ src: url })
-          )
-        );
+        handleImageUpload(file).then((url) => {
+          view.dispatch(
+            view.state.tr.replaceSelectionWith(
+              view.state.schema.nodes.image.create({ src: url })
+            )
+          );
+        }).catch((err) => {
+          console.error('Image upload failed:', err);
+        });
       }
       return true;
     },
