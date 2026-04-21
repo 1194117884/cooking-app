@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Skeleton from '@/components/Skeleton';
+import RichContentViewer from '@/components/RichContentViewer';
 import { getAuthToken } from '@/lib/auth-client';
 
 interface Ingredient {
@@ -25,7 +26,7 @@ interface Recipe {
   carbs?: number;
   fat?: number;
   tags: string[];
-  steps: string;
+  steps: any;
   ingredients: Ingredient[];
   popularity: number;
   isFavorite: boolean;
@@ -36,9 +37,6 @@ async function fetchRecipe(id: string): Promise<Recipe> {
   if (!res.ok) throw new Error('获取菜谱失败');
   const data = await res.json();
   return data.recipe;
-}
-
-throw new Error('用户未认证');
 }
 
 async function toggleFavorite(id: string, isFavorite: boolean) {
@@ -117,9 +115,14 @@ export default function RecipeDetailPage() {
     },
   });
 
-  const steps = recipe?.steps ? JSON.parse(recipe.steps) : [];
-
   const handleAddToPlan = () => {
+    // 存储选中的菜谱到 sessionStorage，在计划页面读取
+    sessionStorage.setItem('selectedRecipe', JSON.stringify({
+      id: recipe?.id,
+      name: recipe?.name,
+    }));
+    router.push('/planner');
+  };
     // 存储选中的菜谱到 sessionStorage，在计划页面读取
     sessionStorage.setItem('selectedRecipe', JSON.stringify({
       id: recipe?.id,
@@ -265,22 +268,13 @@ export default function RecipeDetailPage() {
           </ul>
         </div>
 
-        {/* Steps */}
-        <div className="bg-white rounded-2xl shadow p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">👨‍🍳 烹饪步骤</h2>
-          <div className="space-y-4">
-            {steps.map((step: string, idx: number) => (
-              <div key={idx} className="flex gap-4">
-                <div className="flex-shrink-0 w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold">
-                  {idx + 1}
-                </div>
-                <div className="flex-1 py-1">
-                  <p className="text-gray-800 leading-relaxed">{step}</p>
-                </div>
-              </div>
-            ))}
+          {/* Steps */}
+          <div className="bg-white rounded-2xl shadow p-6 mb-6">
+            <h2 className="text-xl font-bold mb-4">👨‍🍳 烹饪步骤</h2>
+            <div className="prose prose-sm max-w-none">
+              <RichContentViewer content={recipe.steps} />
+            </div>
           </div>
-        </div>
 
         {/* Actions */}
         <div className="grid grid-cols-2 gap-4">
