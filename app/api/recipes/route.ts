@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       !difficulty || typeof difficulty !== 'string' ||
       typeof cookTimeMin !== 'number' ||
       typeof servings !== 'number' ||
-      !steps || typeof steps !== 'string'
+      !steps || (typeof steps !== 'string' && typeof steps !== 'object')
     ) {
       return NextResponse.json(
         { error: '请填写所有必填项且类型正确' },
@@ -75,9 +75,10 @@ export async function POST(request: Request) {
     // 清理输入数据 with enhanced sanitization
     const sanitizedName = sanitizeInput(name);
     const sanitizedCuisineType = sanitizeInput(cuisineType);
-    const sanitizedSteps = sanitizeRichInput(steps); // Use enhanced sanitization for steps which may contain formatting
     const sanitizedCoverImageUrl = coverImageUrl ? sanitizeInput(coverImageUrl as string) : null;
     const sanitizedTags = Array.isArray(tags) ? tags.map(tag => sanitizeInput(String(tag))) : [];
+    // steps can be JSON object (from rich text editor) or string (legacy format)
+    const sanitizedSteps = typeof steps === 'object' ? steps : sanitizeRichInput(steps);
 
     // 验证数据范围
     if (cookTimeMin <= 0 || servings <= 0) {
