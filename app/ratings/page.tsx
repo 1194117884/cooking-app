@@ -1,11 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Skeleton from '@/components/Skeleton';
 import { getAuthToken } from '@/lib/auth-client';
-import { getAuthToken } from '@/lib/auth-client';
+import {
+  Star,
+  ArrowLeft,
+  ChefHat,
+  BookOpen,
+  Calendar,
+  ShoppingCart,
+  Settings,
+  FileText,
+} from 'lucide-react';
 
 interface Member {
   id: string;
@@ -60,52 +69,24 @@ async function fetchRatings(): Promise<Rating[]> {
   return data.ratings;
 }
 
-async function fetchMembers(): Promise<Member[]> {
-  const token = await getAuthToken();
-
-  const res = await fetch('/api/members', {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
-
-  if (res.status === 401) {
-    window.location.href = '/auth/login';
-    throw new Error('未授权访问');
-  }
-
-  if (!res.ok) throw new Error('获取成员失败');
-  const data = await res.json();
-  return data.members;
-}
-
 export default function RatingsPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<MealPlan | null>(null);
-
   const { data: ratings = [], isLoading: ratingsLoading } = useQuery({
     queryKey: ['ratings'],
     queryFn: fetchRatings,
   });
 
-  const { data: members = [], isLoading: membersLoading } = useQuery({
-    queryKey: ['members'],
-    queryFn: fetchMembers,
-  });
+  const averageRating = ratings.length > 0
+    ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length).toFixed(1)
+    : '-';
 
-  const getRatingStars = (rating: number) => {
-    return '⭐'.repeat(rating);
-  };
-
-  if (ratingsLoading || membersLoading) {
+  if (ratingsLoading) {
     return (
-      <main className="min-h-screen p-6 pb-24">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <Skeleton className="h-20 rounded-xl" />
+      <main className="min-h-screen bg-cream-gradient pb-24">
+        <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
+          <Skeleton className="h-20 rounded-3xl" />
           {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
+            <Skeleton key={i} className="h-32 rounded-2xl" />
           ))}
         </div>
       </main>
@@ -113,61 +94,63 @@ export default function RatingsPage() {
   }
 
   return (
-    <main className="min-h-screen p-6 pb-24">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-cream-gradient pb-24">
+      <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">⭐ 餐食评分</h1>
-            <p className="text-gray-600">记录和评价每一餐</p>
+            <h1 className="font-display text-3xl font-bold text-gray-900 mb-2">餐食评分</h1>
+            <p className="text-gray-500">记录和评价每一餐</p>
           </div>
           <button
             onClick={() => router.push('/planner')}
-            className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700"
+            className="btn-secondary flex items-center gap-2"
           >
+            <ArrowLeft size={18} />
             返回计划
           </button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow p-4 text-center">
-            <div className="text-3xl font-bold text-primary-600">{ratings.length}</div>
-            <div className="text-sm text-gray-600">已评分</div>
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="food-card p-5 text-center">
+            <div className="text-3xl font-display font-bold text-amber-600">{ratings.length}</div>
+            <div className="text-sm text-gray-500 mt-1">已评分</div>
           </div>
-          <div className="bg-white rounded-xl shadow p-4 text-center">
-            <div className="text-3xl font-bold text-accent-600">
-              {ratings.length > 0
-                ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length).toFixed(1)
-                : '-'}
+          <div className="food-card p-5 text-center">
+            <div className="flex items-center justify-center gap-1 text-3xl font-display font-bold text-amber-600">
+              {averageRating}
+              {averageRating !== '-' && <Star size={20} className="fill-amber-500 text-amber-500" />}
             </div>
-            <div className="text-sm text-gray-600">平均分</div>
+            <div className="text-sm text-gray-500 mt-1">平均分</div>
           </div>
-          <div className="bg-white rounded-xl shadow p-4 text-center">
-            <div className="text-3xl font-bold text-green-600">
+          <div className="food-card p-5 text-center">
+            <div className="text-3xl font-display font-bold text-sage-600">
               {ratings.filter((r) => r.rating >= 4).length}
             </div>
-            <div className="text-sm text-gray-600">好评</div>
+            <div className="text-sm text-gray-500 mt-1">好评</div>
           </div>
         </div>
 
         {/* Rating List */}
         <div className="space-y-4">
           {ratings.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-xl shadow">
-              <div className="text-6xl mb-4">📝</div>
-              <p className="text-gray-600 mb-4">还没有评分记录</p>
+            <div className="text-center py-16 food-card">
+              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <FileText size={48} className="text-gray-400" />
+              </div>
+              <p className="text-gray-600 mb-2 text-lg">还没有评分记录</p>
               <p className="text-sm text-gray-500">
-                在周计划页面点击"评分"按钮来记录您的用餐体验
+                在周计划页面点击&quot;评分&quot;按钮来记录您的用餐体验
               </p>
             </div>
           ) : (
             ratings.map((rating) => (
               <div
                 key={rating.id}
-                className="bg-white rounded-xl shadow p-4"
+                className="food-card p-5"
               >
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
@@ -176,13 +159,21 @@ export default function RatingsPage() {
                       {rating.member.name[0]}
                     </div>
                     <div>
-                      <div className="font-semibold">{rating.member.name}</div>
+                      <div className="font-semibold text-gray-800">{rating.member.name}</div>
                       <div className="text-sm text-gray-500">
                         {DAY_NAMES[rating.mealPlan.dayOfWeek - 1]} · {MEAL_NAMES[rating.mealPlan.mealType]}
                       </div>
                     </div>
                   </div>
-                  <div className="text-2xl">{getRatingStars(rating.rating)}</div>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        size={18}
+                        className={i < rating.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}
+                      />
+                    ))}
+                  </div>
                 </div>
                 <div className="ml-13">
                   <div className="font-medium text-gray-800 mb-1">
@@ -202,28 +193,24 @@ export default function RatingsPage() {
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden safe-area-pb">
-        <div className="grid grid-cols-5">
-          <a href="/" className="flex flex-col items-center py-3 text-gray-600">
-            <span className="text-xl">🏠</span>
-            <span className="text-xs mt-1">首页</span>
-          </a>
-          <a href="/recipes" className="flex flex-col items-center py-3 text-gray-600">
-            <span className="text-xl">📚</span>
-            <span className="text-xs mt-1">菜谱</span>
-          </a>
-          <a href="/planner" className="flex flex-col items-center py-3 text-primary-600">
-            <span className="text-xl">📅</span>
-            <span className="text-xs mt-1">计划</span>
-          </a>
-          <a href="/shopping" className="flex flex-col items-center py-3 text-gray-600">
-            <span className="text-xl">🛒</span>
-            <span className="text-xs mt-1">采购</span>
-          </a>
-          <a href="/settings" className="flex flex-col items-center py-3 text-gray-600">
-            <span className="text-xl">⚙️</span>
-            <span className="text-xs mt-1">设置</span>
-          </a>
+      <nav className="fixed bottom-0 left-0 right-0 glass border-t border-gray-200 md:hidden safe-area-pb z-50">
+        <div className="grid grid-cols-5 py-2">
+          {[
+            { href: '/', Icon: ChefHat, label: '首页' },
+            { href: '/recipes', Icon: BookOpen, label: '菜谱' },
+            { href: '/planner', Icon: Calendar, label: '计划', active: true },
+            { href: '/shopping', Icon: ShoppingCart, label: '采购' },
+            { href: '/settings', Icon: Settings, label: '设置' },
+          ].map((item, idx) => (
+            <a
+              key={idx}
+              href={item.href}
+              className={`nav-link ${item.active ? 'nav-link-active' : 'nav-link-inactive'}`}
+            >
+              <item.Icon size={20} className="mb-0.5" />
+              <span className="text-xs font-medium">{item.label}</span>
+            </a>
+          ))}
         </div>
       </nav>
     </main>

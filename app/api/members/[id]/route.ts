@@ -5,15 +5,16 @@ import { AuthenticatedRequest, withAuthAndErrorHandler, createErrorResponse } fr
 // 更新家庭成员
 async function updateMember(
   req: AuthenticatedRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const userId = req.userId;
   const body = await req.json();
   const { name, role, avatarColor, dietaryGoal, isActive } = body;
 
   // 验证成员属于当前用户
   const existing = await prisma.familyMember.findFirst({
-    where: { id: params.id, userId },
+    where: { id, userId },
   });
 
   if (!existing) {
@@ -21,7 +22,7 @@ async function updateMember(
   }
 
   const member = await prisma.familyMember.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       name,
       role,
@@ -37,13 +38,14 @@ async function updateMember(
 // 删除家庭成员
 async function deleteMember(
   req: AuthenticatedRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const userId = req.userId;
 
   // 验证成员属于当前用户
   const existing = await prisma.familyMember.findFirst({
-    where: { id: params.id, userId },
+    where: { id, userId },
   });
 
   if (!existing) {
@@ -51,7 +53,7 @@ async function deleteMember(
   }
 
   await prisma.familyMember.delete({
-    where: { id: params.id },
+    where: { id },
   });
 
   return NextResponse.json({ success: true });

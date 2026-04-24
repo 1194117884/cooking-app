@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken, sanitizeInput, sanitizeRichInput } from '@/lib/auth';
+import { Difficulty } from '@prisma/client';
 
 export async function GET() {
   try {
@@ -35,9 +36,9 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const userId = await verifyToken(request as Request & { headers: Headers; cookies: any });
+    const userId = await verifyToken(request);
 
     if (!userId) {
       return NextResponse.json({ error: '未授权' }, { status: 401 });
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
       data: {
         name: sanitizedName,
         cuisineType: sanitizedCuisineType,
-        difficulty,
+        difficulty: difficulty as Difficulty,
         cookTimeMin,
         servings,
         caloriesPerServing: caloriesPerServing || null,

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { AuthenticatedRequest, withAuthAndErrorHandler } from '@/lib/api-wrapper';
 
 // 获取本周计划
-async function getMealPlans(req: AuthenticatedRequest) {
+async function getMealPlans(req: AuthenticatedRequest, _context: { params: Promise<{}> }) {
   const userId = req.userId;
 
   const today = new Date();
@@ -45,7 +45,7 @@ async function getMealPlans(req: AuthenticatedRequest) {
 }
 
 // 添加餐食计划
-async function createMealPlan(req: AuthenticatedRequest) {
+async function createMealPlan(req: AuthenticatedRequest, _context: { params: Promise<{}> }) {
   const userId = req.userId;
   const body = await req.json();
   const { dayOfWeek, mealType, recipeId } = body;

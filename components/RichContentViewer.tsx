@@ -50,6 +50,7 @@ export default function RichContentViewer({ content }: RichContentViewerProps) {
     extensions: [StarterKit, Image, Highlight],
     content: parsedContent,
     editable: false,
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: 'prose prose-sm max-w-none focus:outline-none',

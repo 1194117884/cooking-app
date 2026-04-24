@@ -79,7 +79,7 @@ export class QueryOptimizer {
     args: Prisma.Args<T, 'findMany'>,
     cacheEnabled: boolean = false,
     cacheTtl: number = 300
-  ): Promise<Prisma.Result<T, {}, 'findMany'>['result']> {
+  ): Promise<any> {
     const cacheKey = this.generateCacheKey(model, args);
 
     if (cacheEnabled) {
@@ -97,7 +97,7 @@ export class QueryOptimizer {
     args: Prisma.Args<T, 'findUnique'>,
     cacheEnabled: boolean = true,
     cacheTtl: number = 600
-  ): Promise<Prisma.Result<T, {}, 'findUnique'>['result']> {
+  ): Promise<any> {
     const cacheKey = this.generateCacheKey(model, args);
 
     if (cacheEnabled) {

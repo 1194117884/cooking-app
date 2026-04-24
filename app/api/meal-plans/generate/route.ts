@@ -1,21 +1,21 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 import { MealType } from '@prisma/client';
-import { AppError, handleError, createErrorResponse } from '@/lib/errors';
+import { AppError, AppErrorCode, handleError, createErrorResponse } from '@/lib/errors';
 
 /**
  * 智能生成周计划 API
  * 基于用户偏好自动生成一周菜单
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const userId = await verifyToken(request as Request & { headers: Headers; cookies: any });
+    const userId = await verifyToken(request);
 
     if (!userId) {
       throw new AppError(
         '未授权访问',
-        AppError.AUTHENTICATION_ERROR,
+        AppErrorCode.AUTHENTICATION_ERROR,
         401
       );
     }
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     if (!weekStartDate) {
       throw new AppError(
         '请提供周开始日期',
-        AppError.INVALID_INPUT,
+        AppErrorCode.INVALID_INPUT,
         400
       );
     }
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     if (recipes.length < 7) {
       throw new AppError(
         '可用菜谱不足，请先添加更多菜谱',
-        AppError.VALIDATION_ERROR,
+        AppErrorCode.VALIDATION_ERROR,
         400
       );
     }

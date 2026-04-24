@@ -7,9 +7,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-producti
 // 删除偏好
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // 验证 token
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -21,7 +22,7 @@ export async function DELETE(
 
     // 验证偏好属于当前用户的家庭成员
     const preference = await prisma.preference.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         member: {
           select: { userId: true },
@@ -34,7 +35,7 @@ export async function DELETE(
     }
 
     await prisma.preference.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

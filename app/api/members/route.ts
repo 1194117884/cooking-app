@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { AuthenticatedRequest, withAuthAndErrorHandler } from '@/lib/api-wrapper';
 
 // 获取家庭成员列表
-async function getMembers(req: AuthenticatedRequest) {
+async function getMembers(req: AuthenticatedRequest, _context: { params: Promise<{}> }) {
   const userId = req.userId;
 
   const members = await prisma.familyMember.findMany({
@@ -15,7 +15,7 @@ async function getMembers(req: AuthenticatedRequest) {
 }
 
 // 添加家庭成员
-async function createMember(req: AuthenticatedRequest) {
+async function createMember(req: AuthenticatedRequest, _context: { params: Promise<{}> }) {
   const userId = req.userId;
   const body = await req.json();
   const { name, role, avatarColor, dietaryGoal } = body;

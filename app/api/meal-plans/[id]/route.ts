@@ -5,13 +5,14 @@ import { AuthenticatedRequest, withAuthAndErrorHandler, createErrorResponse } fr
 // 删除餐食计划
 async function deleteMealPlan(
   req: AuthenticatedRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const userId = req.userId;
 
   // 验证计划属于当前用户
   const existing = await prisma.mealPlan.findFirst({
-    where: { id: params.id, userId },
+    where: { id, userId },
   });
 
   if (!existing) {
@@ -19,7 +20,7 @@ async function deleteMealPlan(
   }
 
   await prisma.mealPlan.delete({
-    where: { id: params.id },
+    where: { id },
   });
 
   return NextResponse.json({ success: true });

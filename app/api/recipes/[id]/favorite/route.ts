@@ -9,9 +9,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-producti
  */
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // 验证 token
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -25,7 +26,7 @@ export async function POST(
 
     // 更新菜谱收藏状态
     const recipe = await prisma.recipe.update({
-      where: { id: params.id },
+      where: { id },
       data: { isFavorite },
     });
 

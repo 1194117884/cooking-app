@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { AuthenticatedRequest, withAuthAndErrorHandler, withErrorHandler } from '@/lib/api-wrapper';
 
 // 获取本周采购清单
-async function getShoppingList(req: AuthenticatedRequest) {
+async function getShoppingList(req: AuthenticatedRequest, _context: { params: Promise<{}> }) {
   const userId = req.userId;
 
   const today = new Date();

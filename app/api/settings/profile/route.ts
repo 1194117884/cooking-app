@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { AuthenticatedRequest, withAuthAndErrorHandler, createErrorResponse } from '@/lib/api-wrapper';
 
 // 更新用户信息
-async function updateProfile(req: AuthenticatedRequest) {
+async function updateProfile(req: AuthenticatedRequest, _context: { params: Promise<{}> }) {
   const userId = req.userId;
   const body = await req.json();
   const { name, email } = body;

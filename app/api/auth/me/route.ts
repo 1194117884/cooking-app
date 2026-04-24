@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
-import { AppError, handleError, createErrorResponse } from '@/lib/errors';
+import { AppError, AppErrorCode, handleError, createErrorResponse } from '@/lib/errors';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const userId = await verifyToken(request as Request & { headers: Headers; cookies: any });
+    const userId = await verifyToken(request);
 
     if (!userId) {
       throw new AppError(
         '未授权访问',
-        AppError.AUTHENTICATION_ERROR,
+        AppErrorCode.AUTHENTICATION_ERROR,
         401
       );
     }
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     if (!user) {
       throw new AppError(
         '用户不存在',
-        AppError.USER_NOT_FOUND,
+        AppErrorCode.USER_NOT_FOUND,
         404
       );
     }

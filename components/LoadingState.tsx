@@ -1,7 +1,6 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { useQueryState } from '@tanstack/react-query';
 
 interface LoadingProps {
   children?: ReactNode;

@@ -3,8 +3,22 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api-client';
+import {
+  User,
+  Lock,
+  TrendingUp,
+  LogOut,
+  Loader2,
+  Check,
+  AlertCircle,
+  ChefHat,
+  BookOpen,
+  Calendar,
+  ShoppingCart,
+  Settings as SettingsIcon,
+} from 'lucide-react';
 
-interface User {
+interface UserData {
   id: string;
   name: string;
   email: string;
@@ -13,16 +27,14 @@ interface User {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 个人资料
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMessage, setProfileMessage] = useState('');
 
-  // 修改密码
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,10 +46,9 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 使用新的 api 客户端 - 自动处理认证和 401
   const fetchUser = async () => {
     try {
-      const data = await api.get('/api/auth/me');
+      const data = await api.get('/api/auth/me') as { user: UserData };
       setUser(data.user);
       setName(data.user.name);
       setEmail(data.user.email);
@@ -54,8 +65,8 @@ export default function SettingsPage() {
     setProfileMessage('');
 
     try {
-      const data = await api.patch('/api/settings/profile', { name, email });
-      setProfileMessage('✅ 个人资料已更新');
+      const data = await api.patch('/api/settings/profile', { name, email }) as { user: UserData };
+      setProfileMessage('个人资料已更新');
       setUser(data.user);
     } catch (error: any) {
       console.error('Failed to update profile:', error);
@@ -70,15 +81,14 @@ export default function SettingsPage() {
     setPasswordSaving(true);
     setPasswordMessage('');
 
-    // 验证
     if (newPassword !== confirmPassword) {
-      setPasswordMessage('❌ 两次输入的新密码不一致');
+      setPasswordMessage('两次输入的新密码不一致');
       setPasswordSaving(false);
       return;
     }
 
     if (newPassword.length < 6) {
-      setPasswordMessage('❌ 新密码至少 6 位');
+      setPasswordMessage('新密码至少 6 位');
       setPasswordSaving(false);
       return;
     }
@@ -89,13 +99,13 @@ export default function SettingsPage() {
         newPassword,
       });
 
-      setPasswordMessage('✅ 密码修改成功');
+      setPasswordMessage('密码修改成功');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {
       console.error('Failed to change password:', error);
-      setPasswordMessage(`❌ ${error.message || '修改失败'}`);
+      setPasswordMessage(error.message || '修改失败');
     } finally {
       setPasswordSaving(false);
     }
@@ -111,192 +121,234 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen p-6 flex items-center justify-center">
+      <main className="min-h-screen bg-cream-gradient flex items-center justify-center p-6">
         <div className="text-center">
-          <div className="text-4xl mb-4">⚙️</div>
-          <p className="text-gray-600">加载中...</p>
+          <div className="w-16 h-16 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500">加载中...</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen p-6 pb-24">
-      <div className="max-w-2xl mx-auto">
+    <main className="min-h-screen bg-cream-gradient pb-24">
+      <div className="max-w-2xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">⚙️ 设置</h1>
-          <p className="text-gray-600">管理个人账户信息</p>
+          <h1 className="font-display text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+            设置
+          </h1>
+          <p className="text-gray-500">管理个人账户信息和偏好</p>
         </div>
 
         {/* Profile Section */}
-        <div className="bg-white rounded-2xl shadow p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">👤 个人资料</h2>
+        <div className="food-card p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center">
+              <User size={24} className="text-amber-600" />
+            </div>
+            <div>
+              <h2 className="font-display text-xl font-bold text-gray-900">个人资料</h2>
+              <p className="text-gray-500 text-sm">更新您的基本信息</p>
+            </div>
+          </div>
 
           {profileMessage && (
-            <div className={`mb-4 p-3 rounded-lg text-sm ${
-              profileMessage.startsWith('✅')
-                ? 'bg-green-50 text-green-700'
-                : 'bg-red-50 text-red-700'
+            <div className={`mb-6 p-4 rounded-xl text-sm flex items-center gap-2 ${
+              profileMessage.includes('成功') || profileMessage.includes('更新')
+                ? 'bg-green-50 text-green-700 border border-green-100'
+                : 'bg-red-50 text-red-700 border border-red-100'
             }`}>
+              {profileMessage.includes('成功') ? <Check size={20} /> : <AlertCircle size={20} />}
               {profileMessage}
             </div>
           )}
 
-          <form onSubmit={handleUpdateProfile} className="space-y-4">
+          <form onSubmit={handleUpdateProfile} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 姓名
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="input-field"
+                placeholder="您的姓名"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 邮箱
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="input-field"
+                placeholder="your@email.com"
               />
             </div>
 
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={profileSaving}
-                className="bg-primary-600 text-white px-6 py-3 rounded-xl hover:bg-primary-700 transition-colors font-semibold disabled:opacity-50"
-              >
-                {profileSaving ? '保存中...' : '保存修改'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={profileSaving}
+              className="btn-primary disabled:opacity-50"
+            >
+              {profileSaving ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin" size={16} />
+                  保存中...
+                </span>
+              ) : (
+                '保存修改'
+              )}
+            </button>
           </form>
         </div>
 
         {/* Change Password Section */}
-        <div className="bg-white rounded-2xl shadow p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">🔒 修改密码</h2>
+        <div className="food-card p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-terracotta-100 flex items-center justify-center">
+              <Lock size={24} className="text-terracotta-600" />
+            </div>
+            <div>
+              <h2 className="font-display text-xl font-bold text-gray-900">修改密码</h2>
+              <p className="text-gray-500 text-sm">保护您的账户安全</p>
+            </div>
+          </div>
 
           {passwordMessage && (
-            <div className={`mb-4 p-3 rounded-lg text-sm ${
-              passwordMessage.startsWith('✅')
-                ? 'bg-green-50 text-green-700'
-                : 'bg-red-50 text-red-700'
+            <div className={`mb-6 p-4 rounded-xl text-sm flex items-center gap-2 ${
+              passwordMessage.includes('成功')
+                ? 'bg-green-50 text-green-700 border border-green-100'
+                : 'bg-red-50 text-red-700 border border-red-100'
             }`}>
+              {passwordMessage.includes('成功') ? <Check size={20} /> : <AlertCircle size={20} />}
               {passwordMessage}
             </div>
           )}
 
-          <form onSubmit={handleChangePassword} className="space-y-4">
+          <form onSubmit={handleChangePassword} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 当前密码
               </label>
               <input
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="••••••"
+                className="input-field"
+                placeholder="输入当前密码"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 新密码
               </label>
               <input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="input-field"
                 placeholder="至少 6 位"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 确认新密码
               </label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="input-field"
                 placeholder="再次输入新密码"
               />
             </div>
 
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={passwordSaving}
-                className="bg-accent-600 text-white px-6 py-3 rounded-xl hover:bg-accent-700 transition-colors font-semibold disabled:opacity-50"
-              >
-                {passwordSaving ? '修改中...' : '修改密码'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={passwordSaving}
+              className="btn-primary bg-gradient-to-r from-terracotta-500 to-terracotta-600 disabled:opacity-50"
+            >
+              {passwordSaving ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin" size={16} />
+                  修改中...
+                </span>
+              ) : (
+                '修改密码'
+              )}
+            </button>
           </form>
         </div>
 
         {/* Account Info */}
-        <div className="bg-white rounded-2xl shadow p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">📊 账户信息</h2>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-gray-600">用户 ID</span>
-              <span className="text-gray-800 font-mono">{user?.id}</span>
+        <div className="food-card p-6 mb-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-sage-100 flex items-center justify-center">
+              <TrendingUp size={24} className="text-sage-600" />
             </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-gray-600">注册时间</span>
+            <div>
+              <h2 className="font-display text-xl font-bold text-gray-900">账户信息</h2>
+              <p className="text-gray-500 text-sm">查看账户详情</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center py-3 border-b border-gray-100">
+              <span className="text-gray-500">用户 ID</span>
+              <span className="text-gray-800 font-mono text-sm">{user?.id}</span>
+            </div>
+            <div className="flex justify-between items-center py-3 border-b border-gray-100">
+              <span className="text-gray-500">注册时间</span>
               <span className="text-gray-800">
-                {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('zh-CN') : '-'}
+                {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('zh-CN', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                }) : '-'}
               </span>
             </div>
           </div>
         </div>
 
         {/* Logout */}
-        <div className="bg-white rounded-2xl shadow p-6">
+        <div className="food-card p-6">
           <button
             onClick={handleLogout}
-            className="w-full bg-red-50 text-red-600 py-3 rounded-xl hover:bg-red-100 transition-colors font-semibold"
+            className="w-full py-4 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors font-semibold flex items-center justify-center gap-2"
           >
-            🚪 退出登录
+            <LogOut size={20} />
+            退出登录
           </button>
         </div>
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden safe-area-pb">
-        <div className="grid grid-cols-5">
-          <a href="/" className="flex flex-col items-center py-3 text-gray-600">
-            <span className="text-xl">🏠</span>
-            <span className="text-xs mt-1">首页</span>
-          </a>
-          <a href="/recipes" className="flex flex-col items-center py-3 text-gray-600">
-            <span className="text-xl">📚</span>
-            <span className="text-xs mt-1">菜谱</span>
-          </a>
-          <a href="/planner" className="flex flex-col items-center py-3 text-gray-600">
-            <span className="text-xl">📅</span>
-            <span className="text-xs mt-1">计划</span>
-          </a>
-          <a href="/shopping" className="flex flex-col items-center py-3 text-gray-600">
-            <span className="text-xl">🛒</span>
-            <span className="text-xs mt-1">采购</span>
-          </a>
-          <a href="/settings" className="flex flex-col items-center py-3 text-primary-600">
-            <span className="text-xl">⚙️</span>
-            <span className="text-xs mt-1">设置</span>
-          </a>
+      <nav className="fixed bottom-0 left-0 right-0 glass border-t border-gray-200 md:hidden safe-area-pb z-50">
+        <div className="grid grid-cols-5 py-2">
+          {[
+            { href: '/', Icon: ChefHat, label: '首页' },
+            { href: '/recipes', Icon: BookOpen, label: '菜谱' },
+            { href: '/planner', Icon: Calendar, label: '计划' },
+            { href: '/shopping', Icon: ShoppingCart, label: '采购' },
+            { href: '/settings', Icon: SettingsIcon, label: '设置', active: true },
+          ].map((item, idx) => (
+            <a
+              key={idx}
+              href={item.href}
+              className={`nav-link ${item.active ? 'nav-link-active' : 'nav-link-inactive'}`}
+            >
+              <item.Icon size={20} className="mb-0.5" />
+              <span className="text-xs font-medium">{item.label}</span>
+            </a>
+          ))}
         </div>
       </nav>
     </main>
