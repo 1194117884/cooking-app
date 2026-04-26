@@ -1,10 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import Skeleton from '@/components/Skeleton';
-import { api } from '@/lib/api-client';
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Skeleton from "@/components/Skeleton";
+import { api } from "@/lib/api-client";
 import {
   Calendar,
   Star,
@@ -23,7 +22,7 @@ import {
   BookOpen,
   ShoppingCart as ShoppingIcon,
   ArrowRight,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface Recipe {
   id: string;
@@ -47,30 +46,37 @@ interface MealPlan {
   ratings?: { rating: number; memberId: string }[];
 }
 
-const DAY_NAMES = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+const DAY_NAMES = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 const MEAL_TYPES = [
-  { key: 'BREAKFAST', label: '早餐', Icon: Sunrise, color: 'amber' },
-  { key: 'LUNCH', label: '午餐', Icon: Sun, color: 'orange' },
-  { key: 'DINNER', label: '晚餐', Icon: Moon, color: 'indigo' },
+  { key: "BREAKFAST", label: "早餐", Icon: Sunrise },
+  { key: "LUNCH", label: "午餐", Icon: Sun },
+  { key: "DINNER", label: "晚餐", Icon: Moon },
 ];
 
 async function fetchRecipes(): Promise<Recipe[]> {
-  const data = await api.get('/api/recipes') as { recipes: Recipe[] };
+  const data = (await api.get("/api/recipes")) as { recipes: Recipe[] };
   return data.recipes;
 }
 
 async function fetchMealPlans(): Promise<MealPlan[]> {
-  const data = await api.get('/api/meal-plans') as { mealPlans: MealPlan[] };
+  const data = (await api.get("/api/meal-plans")) as {
+    mealPlans: MealPlan[];
+  };
   return data.mealPlans || [];
 }
 
 async function fetchMembers(): Promise<Member[]> {
-  const data = await api.get('/api/members') as { members: Member[] };
+  const data = (await api.get("/api/members")) as { members: Member[] };
   return data.members;
 }
 
-async function submitRating(mealPlanId: string, memberId: string, rating: number, comment: string) {
-  return api.post('/api/meal-ratings', {
+async function submitRating(
+  mealPlanId: string,
+  memberId: string,
+  rating: number,
+  comment: string
+) {
+  return api.post("/api/meal-ratings", {
     mealPlanId,
     memberId,
     rating,
@@ -78,8 +84,12 @@ async function submitRating(mealPlanId: string, memberId: string, rating: number
   });
 }
 
-async function addMealPlan(dayOfWeek: number, mealType: string, recipeId: string) {
-  return api.post('/api/meal-plans', {
+async function addMealPlan(
+  dayOfWeek: number,
+  mealType: string,
+  recipeId: string
+) {
+  return api.post("/api/meal-plans", {
     dayOfWeek,
     mealType,
     recipeId,
@@ -93,13 +103,12 @@ async function removeMealPlan(mealPlanId: string) {
 async function generateMealPlans() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  return api.post('/api/meal-plans/generate', {
+  return api.post("/api/meal-plans/generate", {
     weekStartDate: today.toISOString(),
   });
 }
 
 export default function PlannerPage() {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedMealType, setSelectedMealType] = useState<string | null>(null);
@@ -107,37 +116,44 @@ export default function PlannerPage() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<MealPlan | null>(null);
   const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState('');
-  const [ratingMemberId, setRatingMemberId] = useState('');
+  const [comment, setComment] = useState("");
+  const [ratingMemberId, setRatingMemberId] = useState("");
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('selectedRecipe');
+    const stored = sessionStorage.getItem("selectedRecipe");
     if (stored) {
-      sessionStorage.removeItem('selectedRecipe');
+      sessionStorage.removeItem("selectedRecipe");
     }
   }, []);
 
   const { data: recipes = [], isLoading: recipesLoading } = useQuery({
-    queryKey: ['recipes'],
+    queryKey: ["recipes"],
     queryFn: fetchRecipes,
   });
 
   const { data: mealPlans = [], isLoading: plansLoading } = useQuery({
-    queryKey: ['mealPlans'],
+    queryKey: ["mealPlans"],
     queryFn: fetchMealPlans,
   });
 
   const { data: members = [], isLoading: membersLoading } = useQuery({
-    queryKey: ['members'],
+    queryKey: ["members"],
     queryFn: fetchMembers,
   });
 
   const addMutation = useMutation({
-    mutationFn: ({ day, mealType, recipeId }: { day: number; mealType: string; recipeId: string }) =>
-      addMealPlan(day, mealType, recipeId),
+    mutationFn: ({
+      day,
+      mealType,
+      recipeId,
+    }: {
+      day: number;
+      mealType: string;
+      recipeId: string;
+    }) => addMealPlan(day, mealType, recipeId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
+      queryClient.invalidateQueries({ queryKey: ["mealPlans"] });
       setShowRecipePicker(false);
       setSelectedDay(null);
       setSelectedMealType(null);
@@ -147,18 +163,19 @@ export default function PlannerPage() {
   const removeMutation = useMutation({
     mutationFn: removeMealPlan,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
+      queryClient.invalidateQueries({ queryKey: ["mealPlans"] });
     },
   });
 
   const ratingMutation = useMutation({
-    mutationFn: () => submitRating(selectedPlan!.id, ratingMemberId, rating, comment),
+    mutationFn: () =>
+      submitRating(selectedPlan!.id, ratingMemberId, rating, comment),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
-      queryClient.invalidateQueries({ queryKey: ['ratings'] });
+      queryClient.invalidateQueries({ queryKey: ["mealPlans"] });
+      queryClient.invalidateQueries({ queryKey: ["ratings"] });
       setShowRatingModal(false);
       setSelectedPlan(null);
-      setComment('');
+      setComment("");
       setRating(5);
     },
   });
@@ -167,7 +184,7 @@ export default function PlannerPage() {
     mutationFn: generateMealPlans,
     onMutate: () => setGenerating(true),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
+      queryClient.invalidateQueries({ queryKey: ["mealPlans"] });
       setGenerating(false);
     },
     onError: () => {
@@ -189,7 +206,11 @@ export default function PlannerPage() {
 
   const handleSelectRecipe = (recipe: Recipe) => {
     if (selectedDay !== null && selectedMealType) {
-      addMutation.mutate({ day: selectedDay, mealType: selectedMealType, recipeId: recipe.id });
+      addMutation.mutate({
+        day: selectedDay,
+        mealType: selectedMealType,
+        recipeId: recipe.id,
+      });
     }
   };
 
@@ -209,96 +230,92 @@ export default function PlannerPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-cream-gradient pb-24">
-        <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-          <Skeleton className="h-24 rounded-3xl" />
-          <div className="grid grid-cols-7 gap-3">
+      <main className="min-h-screen bg-pale-gray pb-24">
+        <div className="max-w-7xl mx-auto px-5 py-8 space-y-5">
+          <Skeleton className="h-[88px] rounded-spotlight" />
+          <div className="grid grid-cols-7 gap-2">
             {[...Array(7)].map((_, i) => (
-              <Skeleton key={i} className="h-28 rounded-2xl" />
+              <Skeleton key={i} className="h-[100px] rounded-card" />
             ))}
           </div>
-          <Skeleton className="h-[500px] rounded-3xl" />
+          <Skeleton className="h-[500px] rounded-module" />
         </div>
       </main>
     );
   }
 
   const totalMeals = mealPlans.length;
-  const completedDays = new Set(mealPlans.map(mp => mp.dayOfWeek)).size;
+  const completedDays = new Set(mealPlans.map((mp) => mp.dayOfWeek)).size;
 
   return (
-    <main className="min-h-screen bg-cream-gradient pb-24">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="font-display text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-              周计划
-            </h1>
-            <p className="text-gray-500">
-              本周已安排 <span className="text-amber-600 font-semibold">{totalMeals}</span> 餐，
-              覆盖 <span className="text-amber-600 font-semibold">{completedDays}</span> 天
-            </p>
-          </div>
-          <a
-            href="/ratings"
-            className="btn-secondary inline-flex items-center gap-2"
-          >
-            <Star size={18} />
+    <main className="min-h-screen bg-pale-gray pb-24">
+      <div className="max-w-7xl mx-auto px-5 py-8">
+        <div className="flex items-center justify-end gap-4 mb-6">
+          <a href="/ratings" className="btn-secondary">
+            <Star size={16} />
             查看评分
           </a>
         </div>
 
         {/* Week Overview Cards */}
-        <div className="grid grid-cols-7 gap-3 mb-8">
+        <div className="grid grid-cols-7 gap-2 mb-6">
           {DAY_NAMES.map((day, idx) => {
             const dayNum = idx + 1;
-            const dayPlans = mealPlans.filter((mp) => mp.dayOfWeek === dayNum);
-            const isToday = new Date().getDay() === (dayNum % 7);
+            const dayPlans = mealPlans.filter(
+              (mp) => mp.dayOfWeek === dayNum
+            );
+            const isToday = new Date().getDay() === dayNum % 7;
 
             return (
               <div
                 key={idx}
-                className={`food-card p-4 text-center cursor-pointer transition-all ${
-                  isToday ? 'ring-2 ring-amber-400 bg-amber-50/50' : ''
+                className={`card p-3 text-center transition-all ${
+                  isToday ? "ring-2 ring-accent-300 bg-accent-50/30" : ""
                 }`}
               >
-                <div className={`font-display font-bold text-lg mb-2 ${isToday ? 'text-amber-600' : 'text-gray-800'}`}>
+                <div
+                  className={`font-display font-semibold text-[17px] mb-1.5 ${
+                    isToday ? "text-accent-500" : "text-ink"
+                  }`}
+                >
                   {day}
                 </div>
-                <div className="flex justify-center gap-1 mb-3">
+                <div className="flex justify-center gap-1 mb-2.5">
                   {dayPlans.length > 0 ? (
                     dayPlans.map((_, i) => (
-                      <div key={i} className="w-2 h-2 rounded-full bg-amber-400" />
+                      <div
+                        key={i}
+                        className="w-1.5 h-1.5 rounded-full bg-accent-500"
+                      />
                     ))
                   ) : (
-                    <div className="w-2 h-2 rounded-full bg-gray-200" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-black/10" />
                   )}
                 </div>
                 <button
-                  onClick={() => handleAddMeal(dayNum, 'DINNER')}
-                  className="w-full py-1.5 text-xs bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors font-medium flex items-center justify-center gap-1"
+                  onClick={() => handleAddMeal(dayNum, "DINNER")}
+                  className="w-full py-1.5 text-xs bg-black/3 text-ink rounded-pill hover:bg-black/8 transition-colors font-medium flex items-center justify-center gap-1"
                 >
-                  <Plus size={12} /> 添加
+                  <Plus size={11} /> 添加
                 </button>
               </div>
             );
           })}
         </div>
 
-        {/* Meal Schedule */}
-        <div className="food-card overflow-hidden mb-8">
+        {/* Meal Schedule Table */}
+        <div className="card overflow-hidden mb-6">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50/80">
-                  <th className="px-4 py-4 text-left text-sm font-semibold text-gray-700 w-28">
+                <tr className="bg-black/[0.02]">
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider w-24">
                     餐次
                   </th>
                   {DAY_NAMES.map((day, idx) => (
                     <th
                       key={idx}
-                      className="px-3 py-4 text-center text-sm font-semibold text-gray-700 min-w-[120px]"
+                      className="px-3 py-3.5 text-center text-xs font-semibold text-text-secondary uppercase tracking-wider min-w-[120px]"
                     >
                       {day}
                     </th>
@@ -307,11 +324,13 @@ export default function PlannerPage() {
               </thead>
               <tbody>
                 {MEAL_TYPES.map((meal) => (
-                  <tr key={meal.key} className="border-t border-gray-100">
-                    <td className="px-4 py-4">
+                  <tr key={meal.key} className="border-t border-[#e5e5e5]">
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
-                        <meal.Icon size={20} className={`text-${meal.color}-500`} />
-                        <span className="font-medium text-gray-700">{meal.label}</span>
+                        <meal.Icon size={18} className="text-text-secondary" />
+                        <span className="text-sm font-medium text-ink">
+                          {meal.label}
+                        </span>
                       </div>
                     </td>
                     {DAY_NAMES.map((_, idx) => {
@@ -321,44 +340,53 @@ export default function PlannerPage() {
                         <td key={idx} className="px-2 py-3">
                           {plan ? (
                             <div className="relative group">
-                              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 border border-amber-100">
-                                <div className="font-medium text-gray-800 text-sm truncate mb-1">
+                              <div className="bg-accent-50/50 rounded-control p-3 border border-accent-100">
+                                <div className="font-medium text-ink text-sm truncate mb-1">
                                   {plan.recipe.name}
                                 </div>
-                                <div className="text-xs text-gray-500 flex items-center gap-1">
+                                <div className="text-xs text-text-secondary flex items-center gap-1">
                                   <TrendingUp size={10} />
                                   {plan.recipe.cookTimeMin}分钟
                                 </div>
-                                {plan.ratings && plan.ratings.length > 0 && (
-                                  <div className="text-xs mt-2 text-amber-600 flex items-center gap-1">
-                                    <Star size={10} className="fill-amber-500 text-amber-500" />
-                                    {(plan.ratings.reduce((s, r) => s + r.rating, 0) / plan.ratings.length).toFixed(1)}
-                                  </div>
-                                )}
+                                {plan.ratings &&
+                                  plan.ratings.length > 0 && (
+                                    <div className="text-xs mt-1.5 text-accent-500 flex items-center gap-1">
+                                      <Star
+                                        size={10}
+                                        className="fill-accent-500"
+                                      />
+                                      {(
+                                        plan.ratings.reduce(
+                                          (s, r) => s + r.rating,
+                                          0
+                                        ) / plan.ratings.length
+                                      ).toFixed(1)}
+                                    </div>
+                                  )}
                               </div>
-                              <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="absolute -top-1.5 -right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                   onClick={() => handleRateMeal(plan)}
-                                  className="w-7 h-7 rounded-full bg-yellow-400 text-white flex items-center justify-center shadow-soft hover:shadow-float"
+                                  className="w-6 h-6 rounded-full bg-yellow-400 text-white flex items-center justify-center shadow-subtle hover:shadow-elevated"
                                   title="评分"
                                 >
-                                  <Star size={12} className="fill-white" />
+                                  <Star size={11} className="fill-white" />
                                 </button>
                                 <button
                                   onClick={() => handleRemoveMeal(plan.id)}
-                                  className="w-7 h-7 rounded-full bg-terracotta-500 text-white flex items-center justify-center shadow-soft hover:shadow-float"
+                                  className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-subtle hover:shadow-elevated"
                                   title="删除"
                                 >
-                                  <Trash2 size={12} />
+                                  <Trash2 size={11} />
                                 </button>
                               </div>
                             </div>
                           ) : (
                             <button
                               onClick={() => handleAddMeal(dayNum, meal.key)}
-                              className="w-full py-6 text-gray-300 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-all border border-dashed border-gray-200 hover:border-amber-300 flex items-center justify-center"
+                              className="w-full py-6 text-text-secondary hover:text-accent-500 hover:bg-accent-50 rounded-control transition-all border border-dashed border-[#e5e5e5] hover:border-accent-200 flex items-center justify-center"
                             >
-                              <Plus size={20} />
+                              <Plus size={18} />
                             </button>
                           )}
                         </td>
@@ -372,40 +400,34 @@ export default function PlannerPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-3 gap-3">
           <button
             onClick={() => {
-              if (confirm('确定要智能生成一周菜单吗？这会替换现有计划。')) {
+              if (confirm("确定要智能生成一周菜单吗？这会替换现有计划。")) {
                 generateMutation.mutate();
               }
             }}
             disabled={generating}
-            className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+            className="btn-primary"
           >
             {generating ? (
               <>
-                <Loader2 className="animate-spin" size={20} />
+                <Loader2 className="animate-spin" size={18} />
                 生成中...
               </>
             ) : (
               <>
-                <Sparkles size={20} />
+                <Sparkles size={18} />
                 智能生成一周菜单
               </>
             )}
           </button>
-          <a
-            href="/shopping"
-            className="btn-secondary text-center flex items-center justify-center gap-2"
-          >
-            <ShoppingCart size={20} />
+          <a href="/shopping" className="btn-secondary text-center">
+            <ShoppingCart size={18} />
             生成采购清单
           </a>
-          <a
-            href="/nutrition"
-            className="btn-secondary text-center flex items-center justify-center gap-2"
-          >
-            <TrendingUp size={20} />
+          <a href="/nutrition" className="btn-secondary text-center">
+            <TrendingUp size={18} />
             查看营养分析
           </a>
         </div>
@@ -415,39 +437,47 @@ export default function PlannerPage() {
       {showRecipePicker && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-display text-xl font-bold">选择菜谱</h3>
+            <div className="px-5 py-4 border-b border-[#e5e5e5] flex items-center justify-between">
+              <h3 className="font-display text-utility-heading text-ink">
+                选择菜谱
+              </h3>
               <button
                 onClick={() => setShowRecipePicker(false)}
-                className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"
+                className="w-9 h-9 rounded-full bg-black/3 flex items-center justify-center text-text-secondary hover:bg-black/8 transition-colors"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
-            <div className="p-5 overflow-y-auto max-h-[60vh]">
-              <div className="grid gap-3">
+            <div className="p-4 overflow-y-auto max-h-[60vh]">
+              <div className="space-y-2">
                 {recipes.map((recipe) => (
                   <button
                     key={recipe.id}
                     onClick={() => handleSelectRecipe(recipe)}
                     disabled={addMutation.isPending}
-                    className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-amber-50 hover:border-amber-200 border border-transparent transition-all text-left disabled:opacity-50"
+                    className="flex items-center gap-4 p-3.5 bg-black/[0.02] rounded-module hover:bg-accent-50 hover:border-accent-200 border border-transparent transition-all text-left w-full disabled:opacity-50"
                   >
-                    <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center flex-shrink-0">
+                    <div className="w-14 h-14 rounded-control bg-black/3 flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {recipe.coverImageUrl ? (
-                        <img src={recipe.coverImageUrl} alt={recipe.name} className="w-full h-full object-cover rounded-xl" />
+                        <img
+                          src={recipe.coverImageUrl}
+                          alt={recipe.name}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
-                        <ChefHat size={24} className="text-amber-400" />
+                        <ChefHat size={22} className="text-text-secondary" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-gray-800 truncate">{recipe.name}</div>
-                      <div className="text-sm text-gray-500">
+                      <div className="font-semibold text-ink truncate">
+                        {recipe.name}
+                      </div>
+                      <div className="text-xs text-text-secondary mt-0.5">
                         {recipe.cuisineType} · {recipe.cookTimeMin}分钟
                       </div>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-white shadow-soft flex items-center justify-center text-amber-600">
-                      <ArrowRight size={16} />
+                    <div className="w-8 h-8 rounded-full bg-black/3 flex items-center justify-center text-accent-500">
+                      <ArrowRight size={15} />
                     </div>
                   </button>
                 ))}
@@ -461,14 +491,15 @@ export default function PlannerPage() {
       {showRatingModal && selectedPlan && (
         <div className="modal-overlay">
           <div className="modal-content p-6">
-            <h3 className="font-display text-xl font-bold mb-6">
-              评价 <span className="text-amber-600">{selectedPlan.recipe.name}</span>
+            <h3 className="font-display text-utility-heading text-ink mb-6">
+              评价{" "}
+              <span className="text-accent-500">
+                {selectedPlan.recipe.name}
+              </span>
             </h3>
 
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                评分成员
-              </label>
+            <div className="mb-5">
+              <label className="field-label">评分成员</label>
               <select
                 value={ratingMemberId}
                 onChange={(e) => setRatingMemberId(e.target.value)}
@@ -482,29 +513,29 @@ export default function PlannerPage() {
               </select>
             </div>
 
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                评分
-              </label>
-              <div className="flex gap-2">
+            <div className="mb-5">
+              <label className="field-label">评分</label>
+              <div className="flex gap-1.5">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
+                    type="button"
                     onClick={() => setRating(star)}
-                    className={`p-2 rounded-xl transition-transform hover:scale-110 ${
-                      star <= rating ? 'text-amber-400' : 'text-gray-200'
+                    className={`p-1.5 rounded-control transition-transform hover:scale-110 ${
+                      star <= rating ? "text-yellow-400" : "text-black/10"
                     }`}
                   >
-                    <Star size={32} className={star <= rating ? 'fill-amber-400' : ''} />
+                    <Star
+                      size={30}
+                      className={star <= rating ? "fill-yellow-400" : ""}
+                    />
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="mb-8">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                评论（可选）
-              </label>
+              <label className="field-label">评论（可选）</label>
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
@@ -516,16 +547,16 @@ export default function PlannerPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowRatingModal(false)}
-                className="flex-1 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 font-medium transition-colors"
+                className="flex-1 btn-secondary"
               >
                 取消
               </button>
               <button
                 onClick={() => ratingMutation.mutate()}
                 disabled={ratingMutation.isPending || !ratingMemberId}
-                className="flex-1 py-3 bg-amber-500 text-white rounded-xl hover:bg-amber-600 disabled:opacity-50 font-medium transition-colors"
+                className="flex-1 btn-primary"
               >
-                {ratingMutation.isPending ? '提交中...' : '提交评分'}
+                {ratingMutation.isPending ? "提交中..." : "提交评分"}
               </button>
             </div>
           </div>
@@ -533,22 +564,24 @@ export default function PlannerPage() {
       )}
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 glass border-t border-gray-200 md:hidden safe-area-pb z-50">
-        <div className="grid grid-cols-5 py-2">
+      <nav className="fixed bottom-0 left-0 right-0 glass-nav md:hidden safe-area-pb z-50">
+        <div className="grid grid-cols-5 py-1.5">
           {[
-            { href: '/', Icon: ChefHat, label: '首页' },
-            { href: '/recipes', Icon: BookOpen, label: '菜谱' },
-            { href: '/planner', Icon: Calendar, label: '计划', active: true },
-            { href: '/shopping', Icon: ShoppingIcon, label: '采购' },
-            { href: '/settings', Icon: Settings, label: '设置' },
-          ].map((item, idx) => (
+            { href: "/", Icon: ChefHat, label: "首页" },
+            { href: "/recipes", Icon: BookOpen, label: "菜谱" },
+            { href: "/planner", Icon: Calendar, label: "计划", active: true },
+            { href: "/shopping", Icon: ShoppingIcon, label: "采购" },
+            { href: "/settings", Icon: Settings, label: "设置" },
+          ].map((item) => (
             <a
-              key={idx}
+              key={item.href}
               href={item.href}
-              className={`nav-link ${item.active ? 'nav-link-active' : 'nav-link-inactive'}`}
+              className={`nav-link ${item.active ? "nav-link-active" : "nav-link-inactive"}`}
             >
-              <item.Icon size={20} className="mb-0.5" />
-              <span className="text-xs font-medium">{item.label}</span>
+              <item.Icon size={20} />
+              <span className="text-[11px] font-medium mt-0.5">
+                {item.label}
+              </span>
             </a>
           ))}
         </div>

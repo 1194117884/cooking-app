@@ -1,19 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Playfair_Display, Lato } from "next/font/google";
+import { Inter, Inter_Tight } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/components/QueryProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import Header from "@/components/Header";
 
-const playfair = Playfair_Display({
+const interTight = Inter_Tight({
   subsets: ["latin"],
-  variable: "--font-playfair",
+  variable: "--font-inter-tight",
   display: "swap",
 });
 
-const lato = Lato({
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["300", "400", "700", "900"],
-  variable: "--font-lato",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f59e0b",
+  themeColor: "#f5f5f7",
   width: "device-width",
   initialScale: 1,
 };
@@ -40,10 +40,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className={`${playfair.variable} ${lato.variable}`}>
-      <body className="font-sans antialiased">
+    <html lang="zh-CN" className={`${interTight.variable} ${inter.variable}`}>
+      <body className="font-body antialiased">
         <ErrorBoundary>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            <Header />
+            {children}
+          </QueryProvider>
         </ErrorBoundary>
       </body>
     </html>

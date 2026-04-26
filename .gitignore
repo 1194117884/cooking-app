@@ -1,8 +1,9 @@
-# Dependencies
+# Dependenies
 node_modules
 .pnp
 .pnp.js
 package-lock.json
+.superpowers
 
 # Testing
 coverage
