@@ -27,7 +27,7 @@ export default function Header() {
             <ChefHat size={15} className="text-white" />
           </div>
           <span className="font-display text-[15px] font-semibold text-ink tracking-[-0.01em]">
-            家庭美食
+            Cooking
           </span>
         </Link>
 

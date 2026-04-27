@@ -18,13 +18,17 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "家庭美食规划系统",
+  title: "Cooking - Smart Meal Planner",
   description: "智能规划每周美食，根据家人口味定制菜谱，自动生成采购清单",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "家庭美食",
+    title: "Cooking",
   },
 };
 
